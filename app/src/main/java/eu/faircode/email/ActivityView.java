@@ -37,13 +37,14 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.TextUtils;
+import android.util.DisplayMetrics;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageButton;
-import android.widget.ScrollView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -153,15 +154,16 @@ public class ActivityView extends ActivityBilling implements FragmentManager.OnB
 
         Configuration config = getResources().getConfiguration();
         final boolean normal = config.isLayoutSizeAtLeast(Configuration.SCREENLAYOUT_SIZE_NORMAL);
+        final boolean portrait2 = prefs.getBoolean("portrait2", false);
         final boolean landscape = prefs.getBoolean("landscape", true);
         final boolean landscape3 = prefs.getBoolean("landscape3", true);
         Log.i("Orientation=" + config.orientation + " normal=" + normal +
                 " landscape=" + landscape + "/" + landscape3);
 
-        view = LayoutInflater.from(this).inflate(
-                config.orientation == ORIENTATION_PORTRAIT || !normal || !landscape
-                        ? R.layout.activity_view_portrait
-                        : R.layout.activity_view_landscape, null);
+        boolean portrait = (config.orientation == ORIENTATION_PORTRAIT || !normal || !landscape);
+        view = LayoutInflater.from(this).inflate(portrait
+                ? (portrait2 ? R.layout.activity_view_portrait_split : R.layout.activity_view_portrait)
+                : R.layout.activity_view_landscape, null);
         setContentView(view);
 
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
@@ -218,6 +220,26 @@ public class ActivityView extends ActivityBilling implements FragmentManager.OnB
         drawerLayout.addDrawerListener(drawerToggle);
 
         drawerContainer = findViewById(R.id.drawer_container);
+
+        int drawerWidth;
+        DisplayMetrics dm = getResources().getDisplayMetrics();
+        if (portrait || !landscape3) {
+            int actionBarHeight;
+            TypedValue tv = new TypedValue();
+            if (getTheme().resolveAttribute(android.R.attr.actionBarSize, tv, true))
+                actionBarHeight = TypedValue.complexToDimensionPixelSize(tv.data, dm);
+            else
+                actionBarHeight = Helper.dp2pixels(this, 56);
+
+            int screenWidth = Math.min(dm.widthPixels, dm.heightPixels);
+            int dp320 = Helper.dp2pixels(this, 320);
+            drawerWidth = Math.min(screenWidth - actionBarHeight, dp320);
+        } else
+            drawerWidth = Helper.dp2pixels(this, 300);
+
+        ViewGroup.LayoutParams lparam = drawerContainer.getLayoutParams();
+        lparam.width = drawerWidth;
+        drawerContainer.setLayoutParams(lparam);
 
         // Accounts
         ibExpanderAccount = drawerContainer.findViewById(R.id.ibExpanderAccount);
@@ -468,15 +490,14 @@ public class ActivityView extends ActivityBilling implements FragmentManager.OnB
             }
         }).setExternal(true));
 
-        if (Helper.getIntentIssue(this).resolveActivity(pm) != null)
-            extra.add(new NavMenuItem(R.drawable.baseline_feedback_24, R.string.menu_issue, new Runnable() {
-                @Override
-                public void run() {
-                    if (!drawerLayout.isLocked(drawerContainer))
-                        drawerLayout.closeDrawer(drawerContainer);
-                    onMenuIssue();
-                }
-            }).setExternal(true));
+        extra.add(new NavMenuItem(R.drawable.baseline_feedback_24, R.string.menu_issue, new Runnable() {
+            @Override
+            public void run() {
+                if (!drawerLayout.isLocked(drawerContainer))
+                    drawerLayout.closeDrawer(drawerContainer);
+                onMenuIssue();
+            }
+        }).setExternal(true));
 
         if (Helper.isPlayStoreInstall() && false)
             extra.add(new NavMenuItem(R.drawable.baseline_bug_report_24, R.string.menu_test, new Runnable() {
@@ -522,34 +543,13 @@ public class ActivityView extends ActivityBilling implements FragmentManager.OnB
             }
         }));
 
-        if ((getIntentInvite(this).resolveActivity(pm) != null))
-            extra.add(new NavMenuItem(R.drawable.baseline_people_24, R.string.menu_invite, new Runnable() {
-                @Override
-                public void run() {
-                    if (!drawerLayout.isLocked(drawerContainer))
-                        drawerLayout.closeDrawer(drawerContainer);
-                    onMenuInvite();
-                }
-            }).setExternal(true));
-
-        if ((Helper.isPlayStoreInstall() || BuildConfig.DEBUG) &&
-                Helper.getIntentRate(this).resolveActivity(pm) != null)
+        if ((Helper.isPlayStoreInstall() || BuildConfig.DEBUG))
             extra.add(new NavMenuItem(R.drawable.baseline_star_24, R.string.menu_rate, new Runnable() {
                 @Override
                 public void run() {
                     if (!drawerLayout.isLocked(drawerContainer))
                         drawerLayout.closeDrawer(drawerContainer);
                     onMenuRate();
-                }
-            }).setExternal(true));
-
-        if (getIntentOtherApps().resolveActivity(pm) != null)
-            extra.add(new NavMenuItem(R.drawable.baseline_get_app_24, R.string.menu_other, new Runnable() {
-                @Override
-                public void run() {
-                    if (!drawerLayout.isLocked(drawerContainer))
-                        drawerLayout.closeDrawer(drawerContainer);
-                    onMenuOtherApps();
                 }
             }).setExternal(true));
 
@@ -710,6 +710,12 @@ public class ActivityView extends ActivityBilling implements FragmentManager.OnB
         return super.onOptionsItemSelected(item);
     }
 
+    View getContentView() {
+        if (drawerLayout == null || drawerLayout.getChildCount() == 0)
+            return null;
+        return drawerLayout.getChildAt(0);
+    }
+
     private void checkFirst() {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
         if (prefs.getBoolean("first", true))
@@ -862,12 +868,10 @@ public class ActivityView extends ActivityBilling implements FragmentManager.OnB
                                 .setVisibility(NotificationCompat.VISIBILITY_SECRET);
 
                 Intent update = new Intent(Intent.ACTION_VIEW, Uri.parse(info.html_url));
-                if (update.resolveActivity(getPackageManager()) != null) {
-                    update.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    PendingIntent piUpdate = PendingIntent.getActivity(
-                            ActivityView.this, REQUEST_UPDATE, update, PendingIntent.FLAG_UPDATE_CURRENT);
-                    builder.setContentIntent(piUpdate);
-                }
+                update.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                PendingIntent piUpdate = PendingIntent.getActivity(
+                        ActivityView.this, REQUEST_UPDATE, update, PendingIntent.FLAG_UPDATE_CURRENT);
+                builder.setContentIntent(piUpdate);
 
                 try {
                     NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
@@ -927,10 +931,17 @@ public class ActivityView extends ActivityBilling implements FragmentManager.OnB
                 if (getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED))
                     getSupportFragmentManager().popBackStack("unified", 0);
 
-                long folder = Long.parseLong(action.split(":", 2)[1]);
+                String[] parts = action.split(":");
+                long folder = Long.parseLong(parts[1]);
                 if (folder > 0) {
                     intent.putExtra("folder", folder);
                     onViewMessages(intent);
+                }
+
+                if (parts.length > 2) {
+                    Intent clear = new Intent(this, ServiceUI.class)
+                            .setAction("clear:" + parts[2]);
+                    startService(clear);
                 }
 
             } else if ("why".equals(action)) {
@@ -977,12 +988,6 @@ public class ActivityView extends ActivityBilling implements FragmentManager.OnB
             intent.removeExtra(Intent.EXTRA_PROCESS_TEXT);
             setIntent(intent);
         }
-    }
-
-    private Intent getIntentOtherApps() {
-        Intent intent = new Intent(Intent.ACTION_VIEW);
-        intent.setData(Uri.parse(BuildConfig.APPS_URI));
-        return intent;
     }
 
     private void onMenuFolders(long account) {
@@ -1098,16 +1103,8 @@ public class ActivityView extends ActivityBilling implements FragmentManager.OnB
         fragmentTransaction.commit();
     }
 
-    private void onMenuInvite() {
-        startActivity(getIntentInvite(this));
-    }
-
     private void onMenuRate() {
         new FragmentDialogRate().show(getSupportFragmentManager(), "rate");
-    }
-
-    private void onMenuOtherApps() {
-        Helper.view(this, getIntentOtherApps());
     }
 
     private void onDebugInfo() {
@@ -1204,8 +1201,11 @@ public class ActivityView extends ActivityBilling implements FragmentManager.OnB
     }
 
     private void onViewMessages(Intent intent) {
-        if (getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED))
+        if (getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED)) {
             getSupportFragmentManager().popBackStack("messages", FragmentManager.POP_BACK_STACK_INCLUSIVE);
+            if (content_pane != null)
+                getSupportFragmentManager().popBackStack("unified", 0);
+        }
 
         Bundle args = new Bundle();
         args.putString("type", intent.getStringExtra("type"));
@@ -1237,6 +1237,7 @@ public class ActivityView extends ActivityBilling implements FragmentManager.OnB
 
         Bundle args = new Bundle();
         args.putLong("account", intent.getLongExtra("account", -1));
+        args.putLong("folder", intent.getLongExtra("folder", -1));
         args.putString("thread", intent.getStringExtra("thread"));
         args.putLong("id", intent.getLongExtra("id", -1));
         args.putBoolean("filter_archive", intent.getBooleanExtra("filter_archive", true));
@@ -1301,18 +1302,6 @@ public class ActivityView extends ActivityBilling implements FragmentManager.OnB
     private class UpdateInfo {
         String tag_name; // version
         String html_url;
-    }
-
-    private static Intent getIntentInvite(Context context) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(context.getString(R.string.title_try)).append("\n\n");
-        sb.append(BuildConfig.INVITE_URI).append("\n\n");
-
-        Intent intent = new Intent(Intent.ACTION_SEND);
-        intent.setType("text/plain");
-        intent.putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.app_name));
-        intent.putExtra(Intent.EXTRA_TEXT, sb.toString());
-        return intent;
     }
 
     public static class FragmentDialogFirst extends FragmentDialogBase {

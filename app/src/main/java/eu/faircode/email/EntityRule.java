@@ -194,8 +194,23 @@ public class EntityRule {
             // Attachments
             if (jcondition.optBoolean("attachments")) {
                 DB db = DB.getInstance(context);
-                if (db.attachment().getAttachments(message.id).size() == 0)
+                List<EntityAttachment> attachments = db.attachment().getAttachments(message.id);
+                if (attachments.size() == 0)
                     return false;
+
+                if (jcondition.has("mimetype")) {
+                    String mimeType = jcondition.getString("mimetype");
+
+                    boolean found = false;
+                    for (EntityAttachment attachment : attachments)
+                        if (mimeType.equalsIgnoreCase(attachment.type)) {
+                            found = true;
+                            break;
+                        }
+
+                    if (!found)
+                        return false;
+                }
             }
 
             // Header
@@ -459,7 +474,7 @@ public class EntityRule {
         automation.putExtra(EXTRA_SENDER, sender);
         automation.putExtra(EXTRA_SUBJECT, message.subject);
 
-        Log.i("Sending " + automation);
+        EntityLog.log(context, "Sending " + automation);
         context.sendBroadcast(automation);
 
         return true;

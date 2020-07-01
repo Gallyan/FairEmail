@@ -108,6 +108,7 @@ public class FragmentAccount extends FragmentBase {
     private Button btnAdvanced;
     private CheckBox cbSynchronize;
     private CheckBox cbOnDemand;
+    private TextView tvLeave;
     private CheckBox cbPrimary;
     private CheckBox cbNotify;
     private TextView tvNotifyPro;
@@ -221,6 +222,7 @@ public class FragmentAccount extends FragmentBase {
         btnAdvanced = view.findViewById(R.id.btnAdvanced);
         cbSynchronize = view.findViewById(R.id.cbSynchronize);
         cbOnDemand = view.findViewById(R.id.cbOnDemand);
+        tvLeave = view.findViewById(R.id.tvLeave);
         cbPrimary = view.findViewById(R.id.cbPrimary);
         cbNotify = view.findViewById(R.id.cbNotify);
         tvNotifyPro = view.findViewById(R.id.tvNotifyPro);
@@ -330,6 +332,17 @@ public class FragmentAccount extends FragmentBase {
             }
         });
 
+        cbInsecure.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                Object tag = cbInsecure.getTag();
+                if (tag != null && tag.equals(isChecked))
+                    return;
+                if (isChecked)
+                    rgEncryption.check(R.id.radio_starttls);
+            }
+        });
+
         tilPassword.getEditText().addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -419,6 +432,14 @@ public class FragmentAccount extends FragmentBase {
             }
         });
 
+        tvLeave.getPaint().setUnderlineText(true);
+        tvLeave.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Helper.viewFAQ(getContext(), 134);
+            }
+        });
+
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             Helper.hide(cbNotify);
             Helper.hide(view.findViewById(R.id.tvNotifyPro));
@@ -479,7 +500,27 @@ public class FragmentAccount extends FragmentBase {
         spTrash.setAdapter(adapter);
         spJunk.setAdapter(adapter);
 
-        adapterSwipe = new ArrayAdapter<>(getContext(), R.layout.spinner_item1, android.R.id.text1, new ArrayList<EntityFolder>());
+        adapterSwipe = new ArrayAdapter<EntityFolder>(getContext(), R.layout.spinner_item1, android.R.id.text1, new ArrayList<EntityFolder>()) {
+            @NonNull
+            @Override
+            public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
+                return localize(position, super.getView(position, convertView, parent));
+            }
+
+            @Override
+            public View getDropDownView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
+                return localize(position, super.getDropDownView(position, convertView, parent));
+            }
+
+            private View localize(int position, View view) {
+                EntityFolder folder = getItem(position);
+                if (folder != null) {
+                    TextView tv = view.findViewById(android.R.id.text1);
+                    tv.setText(EntityFolder.localizeName(view.getContext(), folder.name));
+                }
+                return view;
+            }
+        };
         adapterSwipe.setDropDownViewResource(R.layout.spinner_item1_dropdown);
 
         spLeft.setAdapter(adapterSwipe);
@@ -1332,7 +1373,7 @@ public class FragmentAccount extends FragmentBase {
         btnSupport.setVisibility(View.VISIBLE);
 
         if (provider != null && provider.documentation != null) {
-            tvInstructions.setText(HtmlHelper.fromHtml(provider.documentation.toString()));
+            tvInstructions.setText(HtmlHelper.fromHtml(provider.documentation.toString(), true, getContext()));
             tvInstructions.setVisibility(View.VISIBLE);
         }
 
@@ -1408,6 +1449,7 @@ public class FragmentAccount extends FragmentBase {
                     }
 
                     rgEncryption.check(account != null && account.starttls ? R.id.radio_starttls : R.id.radio_ssl);
+                    cbInsecure.setTag(account == null ? false : account.insecure);
                     cbInsecure.setChecked(account == null ? false : account.insecure);
 
                     etUser.setText(account == null ? null : account.user);
@@ -1773,7 +1815,7 @@ public class FragmentAccount extends FragmentBase {
         return folders;
     }
 
-    private class CheckResult {
+    private static class CheckResult {
         EntityAccount account;
         List<EntityFolder> folders;
         boolean idle;

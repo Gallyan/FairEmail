@@ -6,7 +6,6 @@
     <string name="app_limitations">Na primjer, poruke će uvijek biti preoblikovane kako bi se uklonili nesigurni elementi i poboljšana čitljivost, a otvaranje veza mora biti potvrđeno radi sigurnosti.</string>
     <string name="app_crash">FairEmail nije podržan na ovom uređaju jer greške u Androidu uzrokuju probleme i padove</string>
     <string name="app_exit">Ponovo pritisnite \'natrag\' za izlazak</string>
-    <string name="channel_service">Usluga</string>
     <string name="channel_send">Pošalji</string>
     <string name="channel_notification">Obavijesti</string>
     <string name="channel_update">Ažuriranja</string>
@@ -103,9 +102,7 @@
     <string name="menu_privacy">Privatnost</string>
     <string name="menu_about">O aplikaciji</string>
     <string name="menu_pro">Pro značajke</string>
-    <string name="menu_invite">Pozvati</string>
     <string name="menu_rate">Ocijeni ovu aplikaciju</string>
-    <string name="menu_other">Ostale aplikacije</string>
     <string name="title_welcome">Dobrodošli</string>
     <string name="title_eula">Ugovor o licenciji s krajnjim korisnikom</string>
     <string name="title_agree">Slažem se</string>
@@ -211,9 +208,7 @@
     <string name="title_advanced_section_encryption">Šifriranje</string>
     <string name="title_advanced_section_notifications">Obavijesti</string>
     <string name="title_advanced_section_misc">Razno</string>
-    <string name="title_advanced_receive">Primljane poruka</string>
     <string name="title_advanced_when">Kada</string>
-    <string name="title_advanced_always">Uvijek sinkronizirajte ove račune</string>
     <string name="title_advanced_schedule">Raspored</string>
     <string name="title_advanced_advanced">Napredno</string>
     <string name="title_advanced_unseen">Sve nepročitane poruke</string>
@@ -222,6 +217,8 @@
     <string name="title_advanced_kept_removed">Provjerite jesu li stare poruke uklonjene sa servera</string>
     <string name="title_advanced_sync_folders">Sinkroniziraj popis mapa</string>
     <string name="title_advanced_subscriptions">Upravljanje pretplatama za mape</string>
+    <string name="title_advanced_check_mx">Provjerite adrese pošiljatelja pri sinkronizaciji poruka</string>
+    <string name="title_advanced_check_reply">Provjerite adrese e-pošte s odgovorima na usklađivanje poruka</string>
     <string name="title_advanced_keyboard">Standardno pokaži tastaturu</string>
     <string name="title_advanced_suggest_local">Predložiti lokalno pohranjene kontakte</string>
     <string name="title_advanced_suggest_sent">Predložiti adrese pronađene u poslanim porukama</string>
@@ -230,7 +227,6 @@
     <string name="title_advanced_extended_reply">Koristi prošireno zaglavlje odgovora / naprijed</string>
     <string name="title_advanced_quote_reply">Citiraj odgovoreni tekst</string>
     <string name="title_advanced_signature_location">Položaj potpisa</string>
-    <string name="title_advanced_signature_end">Dodajte potpis nakon citirane / proslijeđene poruke</string>
     <string name="title_advanced_plain_only">Standardno šaljite samo običan tekst</string>
     <string name="title_advanced_flow">\'format teče\' za obični tekst</string>
     <string name="title_advanced_receipt">Kada tražite potvrdu</string>
@@ -245,7 +241,6 @@
     <string name="title_advanced_rlah">Roaming kao kod kuće</string>
     <string name="title_advanced_timeout">Vrijeme do prekida veze (u sekundama)</string>
     <string name="title_advanced_ssl_harden">Otvrdni SSL veze</string>
-    <string name="title_advanced_socks">Koristi SOCKS proxy</string>
     <string name="title_advanced_manage_connectivity">Upravljanje povezivanjem</string>
     <string name="title_advanced_caption_general">Općenito</string>
     <string name="title_advanced_caption_conversation">Konverzacija</string>
@@ -282,9 +277,6 @@
     <string name="title_advanced_addresses">Prema zadanim postavkama prikazuje pojedinosti adrese</string>
     <string name="title_advanced_attachments_alt">Prikažite privitke nakon teksta poruke</string>
     <string name="title_advanced_contrast">Koristi visoki kontrast za tekst poruke</string>
-    <string name="title_advanced_monospaced">Upotrijebiti font u jednolikim razmjerima za tekst poruke</string>
-    <string name="title_advanced_text_color">Pokaži boje teksta</string>
-    <string name="title_advanced_text_size">Prikaži male i velike tekstove</string>
     <string name="title_advanced_collapse_quotes">Sažmi citirani tekst</string>
     <string name="title_advanced_images_inline">Automatski prikaz uključenih slika</string>
     <string name="title_advanced_seekbar">Prikaži relativni položaj razgovora s točkom</string>
@@ -357,9 +349,7 @@
     <string name="title_advanced_external_search">Dopusti drugim aplikacijama da pretražuju u porukama</string>
     <string name="title_advanced_fts">Gradi registar pretrage</string>
     <string name="title_advanced_fts_indexed">%1$d / %2$d poruke indeksirane (%3$s)</string>
-    <string name="title_advanced_english">Prisiliti engleski jezik</string>
     <string name="title_advanced_watchdog">Povremeno provjeriti je li je FairEmail još uvijek aktivan</string>
-    <string name="title_advanced_optimize">Postavke automatski optimizirati</string>
     <string name="title_advanced_updates">Provjeri ažuriranja</string>
     <string name="title_advanced_experiments">Probaj eksperimentalne značajke</string>
     <string name="title_advanced_crash_reports">Pošalji izvješća o pogrešci</string>
@@ -367,28 +357,22 @@
     <string name="title_advanced_cleanup">Čišćenje</string>
     <string name="title_advanced_last_cleanup">Posljednje čišćenje: %1$s</string>
     <string name="title_advanced_more">Više opcija</string>
-    <string name="title_advanced_enabled_hint">Globalno onemogućiti ili omogućiti primanje poruka</string>
-    <string name="title_advanced_manual_hint">Ako je sinkronizacija onemogućena, i dalje je moguće ručno sinkronizirati povlačenjem popisa poruka.</string>
-    <string name="title_advanced_poll_hint">Periodično sinkroniziranje će svaki put usporediti lokalne i udaljene poruke, što je skupa operacija koja može rezultirati dodatnom potrošnjom baterije, pogotovo ako postoji puno poruka za sinkronizaciju. Uvijek sinkroniziranje će ovo izbjeći neprekidnim nadgledanjem isključivo promjena.</string>
     <string name="title_advanced_schedule_hint">Dodirnite vrijeme za postavljanje vremena</string>
-    <string name="title_advanced_check_mx">Provjerite adrese pošiljatelja pri sinkronizaciji poruka</string>
-    <string name="title_advanced_check_reply">Provjerite adrese e-pošte s odgovorima na usklađivanje poruka</string>
     <string name="title_advanced_unseen_hint">Neki davatelji ne podržavaju to ispravno, što može uzrokovati sinkronizaciju nijedne ili svih poruka</string>
     <string name="title_advanced_deleted_unseen">Kad je onemogućeno, nepročitane poruke zauvijek se čuvaju na uređaju</string>
     <string name="title_advanced_sync_kept_hint">To će prenijeti dodatne podatke i potrošiti dodatnu snagu baterije, posebno ako je na uređaju spremljeno puno poruka</string>
     <string name="title_advanced_sync_folders_hint">Onemogućavanjem će se nešto smanjiti korištenje podataka i baterija, ali će se onemogućiti i ažuriranje popisa mapa</string>
+    <string name="title_advanced_lookup_mx_hint">Ovo će provjeriti dali postoju DNS MX zapisi</string>
     <string name="title_advanced_sync_delay_hint">Ovo će usporiti sinkronizaciju poruka</string>
+    <string name="title_advanced_check_reply_hint">Ovim će se provjeriti jesu li ime domene pošiljatelja i adrese odgovora isti</string>
     <string name="title_advanced_suggest_local_hint">Pored kontakata koje pruža Android. Podaci za kontakte bit će pohranjeni za novoprimljene ili primljene poruke samo ako su omogućene.</string>
     <string name="title_advanced_usenet_hint">Umetni \'--\' između teksta i potpisa</string>
     <string name="title_advanced_send_reminders_hint">Pokaži upozorenje kada je tekst poruke ili predmet prazan ili kada prilog možda nedostaje</string>
-    <string name="title_advanced_lookup_mx_hint">Ovo će provjeriti dali postoju DNS MX zapisi</string>
-    <string name="title_advanced_check_reply_hint">Ovim će se provjeriti jesu li ime domene pošiljatelja i adrese odgovora isti</string>
     <string name="title_advanced_metered_hint">Mjerne veze su obično mobilne veze ili plaćene Wi-Fi pristupne točke</string>
     <string name="title_advanced_metered_warning">Onemogućivanjem ove opcije onemogućit ćete primanje i slanje poruka na mobilnim internetskim vezama</string>
     <string name="title_advanced_rlah_hint">Ne pretpostavljajući roaming unutar EU</string>
     <string name="title_advanced_timeout_hint">Vremensko ograničenje čitanja / pisanja postavit će se u dvostruko vrijeme do prekida veze. Veće vrijednosti rezultirat će većom potrošnjom baterije.</string>
     <string name="title_advanced_ssl_harden_hint">Ako se to omogući, onemogućit će se slabi SSL protokoli i šifre, što može dovesti do problema s vezom</string>
-    <string name="title_advanced_socks_hint">Upotreba udaljenog proxy poslužitelja nije sigurna jer proxy veze nisu šifrirane</string>
     <string name="title_advanced_roaming_hint">Zaglavlja poruka uvijek će se prikazivane prilikom roaminga. Postavku roaminga uređaja možete koristiti da biste onemogućili internet tijekom roaminga.</string>
     <string name="title_advanced_browse_hint">Dohvatite više poruka prilikom pomicanja prema dolje</string>
     <string name="title_advanced_layout_hint">Prebacivanje na kompaktniji izgled i promjena veličine teksta poruke može se izvršiti u izborniku gornje radne trake u prikazu poruka</string>
@@ -602,7 +586,6 @@
     <string name="title_reply_list">Odgovoriti popisu</string>
     <string name="title_reply_receipt">Pošalji potvrdu za čitanje</string>
     <string name="title_reply_template">Odgovori pomoću predloška</string>
-    <string name="title_moving">Premjesti u %1$s</string>
     <string name="title_open_with">Otvori sa</string>
     <string name="title_authentication_failed">%1$s provjera autentičnosti nije uspjela</string>
     <string name="title_receipt_subject">Potvrda o čitanju: %1$s</string>
@@ -679,7 +662,6 @@
     <string name="title_style_italic">Kurziv</string>
     <string name="title_style_underline">Naglasi</string>
     <string name="title_style_size">Veličina</string>
-    <string name="title_style_color">Boja</string>
     <string name="title_style_clear">Očisti sva oblikovanja</string>
     <string name="title_style_link">Umetni vezu</string>
     <string name="title_add_attachment">Dodaj prilog</string>
@@ -893,8 +875,6 @@
     <string name="title_legend_bold">Postavi tekst podebljano</string>
     <string name="title_legend_italic">Postavi tekst kurzivno</string>
     <string name="title_legend_underline">Podcrtaj tekst</string>
-    <string name="title_legend_text_size">Postavi veličinu teksta</string>
-    <string name="title_legend_text_color">Postavi boju teksta</string>
     <string name="title_legend_metered">Veza se mjeri</string>
     <string name="title_legend_unmetered">Veza se ne mjeri</string>
     <string name="title_legend_roaming">Roaming</string>
@@ -904,7 +884,6 @@
     <string name="title_legend_show_junk">Tretiraj kao neželjenu poštu</string>
     <string name="title_legend_show_unsubscribe">Odjavi se s popisa</string>
     <string name="title_legend_show_images">Prikaži slike</string>
-    <string name="title_legend_show_full">Prikaži cijeli ekran</string>
     <string name="title_legend_edit">Uredi</string>
     <string name="title_legend_default_color">Zadana boja</string>
     <string name="title_legend_close_hint">Zatvori savjet</string>
@@ -970,20 +949,15 @@
     <string name="title_dismiss">Odbaci</string>
     <string name="title_snooze_now">Odgodi</string>
     <string name="title_loading">Učitava &#8230;</string>
-    <string name="title_set">Postavi</string>
     <string name="title_fetching_again">Dohvaćanje poruke opet s poslužitelja</string>
     <string name="title_icalendar_accept">Prihvati</string>
     <string name="title_icalendar_decline">Odbij</string>
     <string name="title_icalendar_maybe">Možda</string>
     <string name="title_icalendar_calendar">Kalendar</string>
-    <string name="title_try">Pokušajte FairEmail, open source i privatnost poštujući e-mail app za Android</string>
     <string name="title_pro_feature">Ovo je pro funkcija</string>
     <string name="title_pro_list">Popis pro funkcija</string>
     <string name="title_pro_purchase">Kupi</string>
     <string name="title_pro_once">Samo jednom</string>
-    <string name="title_pro_info">Razvoj FairEmaila trajao je doslovno tisuće sati i bez obzira na to što je većina značajki besplatna za korištenje.
-         Da bi FairEmail dugoročno bio održiv, neke pogodnosti i napredne značajke se ne mogu besplatno koristiti.
-         FairEmail prikazuje malu poruku koja vas podsjeća na to, a koja će biti uklonjena ako kupite profesionalne značajke.    </string>
     <string name="title_pro_hint">Kupnja pro funkcija će vam omogućiti da koristite sve trenutne i buduće mogućnosti aplikacije i zadržat će ovu aplikaciju održavanu i podržanu</string>
     <string name="title_pro_price">Pogledajte <a href="https://github.com/M66B/open-source-email/blob/master/FAQ.md#user-content-faq19"> ovaj FAQ </a> za cijenu pro funkcija</string>
     <string name="title_pro_pending">Kupnja na čekanju</string>
@@ -1102,6 +1076,7 @@
         <item>Na početku</item>
         <item>U sredini</item>
         <item>Na kraju</item>
+        <item>Show untruncated</item>
     </string-array>
     <string-array name="priorityNames">
         <item>Nizak</item>

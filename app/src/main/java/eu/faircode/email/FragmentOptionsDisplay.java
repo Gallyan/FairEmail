@@ -60,10 +60,12 @@ public class FragmentOptionsDisplay extends FragmentBase implements SharedPrefer
     private SwitchCompat swCards;
     private SwitchCompat swDate;
     private SwitchCompat swNavBarColorize;
+    private SwitchCompat swPortrait2;
     private SwitchCompat swLandscape;
     private SwitchCompat swLandscape3;
 
     private SwitchCompat swThreading;
+    private SwitchCompat swThreadingUnread;
     private SwitchCompat swIndentation;
     private SwitchCompat swSeekbar;
     private SwitchCompat swActionbar;
@@ -74,6 +76,7 @@ public class FragmentOptionsDisplay extends FragmentBase implements SharedPrefer
     private SwitchCompat swAvatars;
     private TextView tvGravatarsHint;
     private SwitchCompat swGravatars;
+    private SwitchCompat swFavicons;
     private SwitchCompat swGeneratedIcons;
     private SwitchCompat swIdenticons;
     private SwitchCompat swCircular;
@@ -94,6 +97,7 @@ public class FragmentOptionsDisplay extends FragmentBase implements SharedPrefer
     private SwitchCompat swHighlightSubject;
     private Spinner spSubjectEllipsize;
     private SwitchCompat swKeywords;
+    private SwitchCompat swLabels;
     private SwitchCompat swFlags;
     private SwitchCompat swFlagsBackground;
     private SwitchCompat swPreview;
@@ -101,33 +105,33 @@ public class FragmentOptionsDisplay extends FragmentBase implements SharedPrefer
     private Spinner spPreviewLines;
 
     private SwitchCompat swAddresses;
-    private SwitchCompat swArchiveTrash;
-    private SwitchCompat swMove;
 
     private SwitchCompat swContrast;
     private SwitchCompat swMonospaced;
     private SwitchCompat swTextColor;
     private SwitchCompat swTextSize;
+    private SwitchCompat swTextFont;
     private SwitchCompat swTextAlign;
     private SwitchCompat swCollapseQuotes;
     private SwitchCompat swImagesInline;
     private SwitchCompat swAttachmentsAlt;
+    private SwitchCompat swThumbnails;
 
     private SwitchCompat swParseClasses;
     private SwitchCompat swAuthentication;
 
     private final static String[] RESET_OPTIONS = new String[]{
-            "theme", "startup", "cards", "date", "navbar_colorize", "landscape", "landscape3",
-            "threading", "indentation", "seekbar", "actionbar", "actionbar_color",
+            "theme", "startup", "cards", "date", "navbar_colorize", "portrait2", "landscape", "landscape3",
+            "threading", "threading_unread", "indentation", "seekbar", "actionbar", "actionbar_color",
             "highlight_unread", "color_stripe",
-            "avatars", "gravatars", "generated_icons", "identicons", "circular", "saturation", "brightness", "threshold",
+            "avatars", "gravatars", "favicons", "generated_icons", "identicons", "circular", "saturation", "brightness", "threshold",
             "name_email", "prefer_contact", "distinguish_contacts", "show_recipients",
             "subject_top", "font_size_sender", "font_size_subject", "subject_italic", "highlight_subject", "subject_ellipsize",
-            "keywords_header", "flags", "flags_background",
+            "keywords_header", "labels_header", "flags", "flags_background",
             "preview", "preview_italic", "preview_lines",
-            "addresses", "button_archive_trash", "button_move",
-            "contrast", "monospaced", "text_color", "text_size", "text_align",
-            "inline_images", "collapse_quotes", "attachments_alt",
+            "addresses",
+            "contrast", "monospaced", "text_color", "text_size", "text_font", "text_align",
+            "inline_images", "collapse_quotes", "attachments_alt", "thumbnails",
             "parse_classes", "authentication"
     };
 
@@ -146,10 +150,12 @@ public class FragmentOptionsDisplay extends FragmentBase implements SharedPrefer
         swCards = view.findViewById(R.id.swCards);
         swDate = view.findViewById(R.id.swDate);
         swNavBarColorize = view.findViewById(R.id.swNavBarColorize);
+        swPortrait2 = view.findViewById(R.id.swPortrait2);
         swLandscape = view.findViewById(R.id.swLandscape);
         swLandscape3 = view.findViewById(R.id.swLandscape3);
 
         swThreading = view.findViewById(R.id.swThreading);
+        swThreadingUnread = view.findViewById(R.id.swThreadingUnread);
         swIndentation = view.findViewById(R.id.swIndentation);
         swSeekbar = view.findViewById(R.id.swSeekbar);
         swActionbar = view.findViewById(R.id.swActionbar);
@@ -160,6 +166,7 @@ public class FragmentOptionsDisplay extends FragmentBase implements SharedPrefer
         swAvatars = view.findViewById(R.id.swAvatars);
         swGravatars = view.findViewById(R.id.swGravatars);
         tvGravatarsHint = view.findViewById(R.id.tvGravatarsHint);
+        swFavicons = view.findViewById(R.id.swFavicons);
         swGeneratedIcons = view.findViewById(R.id.swGeneratedIcons);
         swIdenticons = view.findViewById(R.id.swIdenticons);
         swCircular = view.findViewById(R.id.swCircular);
@@ -180,22 +187,23 @@ public class FragmentOptionsDisplay extends FragmentBase implements SharedPrefer
         swHighlightSubject = view.findViewById(R.id.swHighlightSubject);
         spSubjectEllipsize = view.findViewById(R.id.spSubjectEllipsize);
         swKeywords = view.findViewById(R.id.swKeywords);
+        swLabels = view.findViewById(R.id.swLabels);
         swFlags = view.findViewById(R.id.swFlags);
         swFlagsBackground = view.findViewById(R.id.swFlagsBackground);
         swPreview = view.findViewById(R.id.swPreview);
         swPreviewItalic = view.findViewById(R.id.swPreviewItalic);
         spPreviewLines = view.findViewById(R.id.spPreviewLines);
         swAddresses = view.findViewById(R.id.swAddresses);
-        swArchiveTrash = view.findViewById(R.id.swArchiveTrash);
-        swMove = view.findViewById(R.id.swMove);
         swContrast = view.findViewById(R.id.swContrast);
         swMonospaced = view.findViewById(R.id.swMonospaced);
         swTextColor = view.findViewById(R.id.swTextColor);
         swTextSize = view.findViewById(R.id.swTextSize);
+        swTextFont = view.findViewById(R.id.swTextFont);
         swTextAlign = view.findViewById(R.id.swTextAlign);
         swCollapseQuotes = view.findViewById(R.id.swCollapseQuotes);
         swImagesInline = view.findViewById(R.id.swImagesInline);
         swAttachmentsAlt = view.findViewById(R.id.swAttachmentsAlt);
+        swThumbnails = view.findViewById(R.id.swThumbnails);
         swParseClasses = view.findViewById(R.id.swParseClasses);
         swAuthentication = view.findViewById(R.id.swAuthentication);
 
@@ -249,6 +257,13 @@ public class FragmentOptionsDisplay extends FragmentBase implements SharedPrefer
             }
         });
 
+        swPortrait2.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean checked) {
+                prefs.edit().putBoolean("portrait2", checked).apply();
+            }
+        });
+
         swLandscape.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean checked) {
@@ -268,7 +283,15 @@ public class FragmentOptionsDisplay extends FragmentBase implements SharedPrefer
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean checked) {
                 prefs.edit().putBoolean("threading", checked).apply();
+                swThreadingUnread.setEnabled(checked);
                 WidgetUnified.updateData(getContext());
+            }
+        });
+
+        swThreadingUnread.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean checked) {
+                prefs.edit().putBoolean("threading_unread", checked).apply();
             }
         });
 
@@ -320,7 +343,7 @@ public class FragmentOptionsDisplay extends FragmentBase implements SharedPrefer
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean checked) {
                 prefs.edit().putBoolean("avatars", checked).apply();
-                ContactInfo.clearCache();
+                ContactInfo.clearCache(getContext());
             }
         });
 
@@ -328,7 +351,15 @@ public class FragmentOptionsDisplay extends FragmentBase implements SharedPrefer
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean checked) {
                 prefs.edit().putBoolean("gravatars", checked).apply();
-                ContactInfo.clearCache();
+                ContactInfo.clearCache(getContext());
+            }
+        });
+
+        swFavicons.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean checked) {
+                prefs.edit().putBoolean("favicons", checked).apply();
+                ContactInfo.clearCache(getContext());
             }
         });
 
@@ -348,7 +379,7 @@ public class FragmentOptionsDisplay extends FragmentBase implements SharedPrefer
                 sbSaturation.setEnabled(checked);
                 sbBrightness.setEnabled(checked);
                 sbThreshold.setEnabled(checked);
-                ContactInfo.clearCache();
+                ContactInfo.clearCache(getContext());
             }
         });
 
@@ -356,7 +387,7 @@ public class FragmentOptionsDisplay extends FragmentBase implements SharedPrefer
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean checked) {
                 prefs.edit().putBoolean("identicons", checked).apply();
-                ContactInfo.clearCache();
+                ContactInfo.clearCache(getContext());
             }
         });
 
@@ -365,7 +396,7 @@ public class FragmentOptionsDisplay extends FragmentBase implements SharedPrefer
             public void onCheckedChanged(CompoundButton compoundButton, boolean checked) {
                 prefs.edit().putBoolean("circular", checked).apply();
                 updateColor();
-                ContactInfo.clearCache();
+                ContactInfo.clearCache(getContext());
             }
         });
 
@@ -374,7 +405,7 @@ public class FragmentOptionsDisplay extends FragmentBase implements SharedPrefer
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 prefs.edit().putInt("saturation", progress).apply();
                 updateColor();
-                ContactInfo.clearCache();
+                ContactInfo.clearCache(getContext());
             }
 
             @Override
@@ -393,7 +424,7 @@ public class FragmentOptionsDisplay extends FragmentBase implements SharedPrefer
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 prefs.edit().putInt("brightness", progress).apply();
                 updateColor();
-                ContactInfo.clearCache();
+                ContactInfo.clearCache(getContext());
             }
 
             @Override
@@ -412,7 +443,7 @@ public class FragmentOptionsDisplay extends FragmentBase implements SharedPrefer
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 prefs.edit().putInt("threshold", progress).apply();
                 updateColor();
-                ContactInfo.clearCache();
+                ContactInfo.clearCache(getContext());
             }
 
             @Override
@@ -523,6 +554,13 @@ public class FragmentOptionsDisplay extends FragmentBase implements SharedPrefer
             }
         });
 
+        swLabels.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean checked) {
+                prefs.edit().putBoolean("labels_header", checked).apply();
+            }
+        });
+
         swFlags.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean checked) {
@@ -572,20 +610,6 @@ public class FragmentOptionsDisplay extends FragmentBase implements SharedPrefer
             }
         });
 
-        swArchiveTrash.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton compoundButton, boolean checked) {
-                prefs.edit().putBoolean("button_archive_trash", checked).apply();
-            }
-        });
-
-        swMove.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton compoundButton, boolean checked) {
-                prefs.edit().putBoolean("button_move", checked).apply();
-            }
-        });
-
         swContrast.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean checked) {
@@ -614,6 +638,13 @@ public class FragmentOptionsDisplay extends FragmentBase implements SharedPrefer
             }
         });
 
+        swTextFont.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean checked) {
+                prefs.edit().putBoolean("text_font", checked).apply();
+            }
+        });
+
         swTextAlign.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean checked) {
@@ -639,6 +670,13 @@ public class FragmentOptionsDisplay extends FragmentBase implements SharedPrefer
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean checked) {
                 prefs.edit().putBoolean("attachments_alt", checked).apply();
+            }
+        });
+
+        swThumbnails.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean checked) {
+                prefs.edit().putBoolean("thumbnails", checked).apply();
             }
         });
 
@@ -719,12 +757,15 @@ public class FragmentOptionsDisplay extends FragmentBase implements SharedPrefer
         swCards.setChecked(prefs.getBoolean("cards", true));
         swDate.setChecked(prefs.getBoolean("date", true));
         swNavBarColorize.setChecked(prefs.getBoolean("navbar_colorize", false));
+        swPortrait2.setChecked(prefs.getBoolean("portrait2", false));
         swLandscape.setChecked(prefs.getBoolean("landscape", true));
         swLandscape.setEnabled(normal);
         swLandscape3.setChecked(prefs.getBoolean("landscape3", false));
         swLandscape3.setEnabled(normal && swLandscape.isChecked());
 
         swThreading.setChecked(prefs.getBoolean("threading", true));
+        swThreadingUnread.setChecked(prefs.getBoolean("threading_unread", false));
+        swThreadingUnread.setEnabled(swThreading.isChecked());
         swIndentation.setChecked(prefs.getBoolean("indentation", false));
         swIndentation.setEnabled(swCards.isChecked());
         swSeekbar.setChecked(prefs.getBoolean("seekbar", false));
@@ -736,6 +777,7 @@ public class FragmentOptionsDisplay extends FragmentBase implements SharedPrefer
         swColorStripe.setChecked(prefs.getBoolean("color_stripe", true));
         swAvatars.setChecked(prefs.getBoolean("avatars", true));
         swGravatars.setChecked(prefs.getBoolean("gravatars", false));
+        swFavicons.setChecked(prefs.getBoolean("favicons", false));
         swGeneratedIcons.setChecked(prefs.getBoolean("generated_icons", true));
         swIdenticons.setChecked(prefs.getBoolean("identicons", false));
         swIdenticons.setEnabled(swGeneratedIcons.isChecked());
@@ -782,6 +824,7 @@ public class FragmentOptionsDisplay extends FragmentBase implements SharedPrefer
             }
 
         swKeywords.setChecked(prefs.getBoolean("keywords_header", false));
+        swLabels.setChecked(prefs.getBoolean("labels_header", true));
         swFlags.setChecked(prefs.getBoolean("flags", true));
         swFlagsBackground.setChecked(prefs.getBoolean("flags_background", false));
         swPreview.setChecked(prefs.getBoolean("preview", false));
@@ -790,16 +833,16 @@ public class FragmentOptionsDisplay extends FragmentBase implements SharedPrefer
         spPreviewLines.setSelection(prefs.getInt("preview_lines", 2) - 1);
         spPreviewLines.setEnabled(swPreview.isChecked());
         swAddresses.setChecked(prefs.getBoolean("addresses", false));
-        swArchiveTrash.setChecked(prefs.getBoolean("button_archive_trash", true));
-        swMove.setChecked(prefs.getBoolean("button_move", true));
         swContrast.setChecked(prefs.getBoolean("contrast", false));
         swMonospaced.setChecked(prefs.getBoolean("monospaced", false));
         swTextColor.setChecked(prefs.getBoolean("text_color", true));
         swTextSize.setChecked(prefs.getBoolean("text_size", true));
+        swTextFont.setChecked(prefs.getBoolean("text_font", true));
         swTextAlign.setChecked(prefs.getBoolean("text_align", true));
         swCollapseQuotes.setChecked(prefs.getBoolean("collapse_quotes", false));
         swImagesInline.setChecked(prefs.getBoolean("inline_images", false));
         swAttachmentsAlt.setChecked(prefs.getBoolean("attachments_alt", false));
+        swThumbnails.setChecked(prefs.getBoolean("thumbnails", true));
 
         swParseClasses.setChecked(prefs.getBoolean("parse_classes", false));
         swAuthentication.setChecked(prefs.getBoolean("authentication", true));
@@ -990,7 +1033,7 @@ public class FragmentOptionsDisplay extends FragmentBase implements SharedPrefer
                         public void onClick(DialogInterface dialog, int which) {
                             getActivity().getIntent().putExtra("tab", "display");
 
-                            ContactInfo.clearCache();
+                            ContactInfo.clearCache(getContext());
 
                             boolean reverse = (swReverse.isEnabled() && swReverse.isChecked());
                             boolean dark = (swDark.isEnabled() && swDark.isChecked());

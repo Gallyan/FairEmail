@@ -62,6 +62,8 @@ public class ServiceUI extends IntentService {
     static final int PI_SYNC = 13;
     static final int PI_BANNER = 14;
 
+    static final int HIDE_BANNER = 3; // weeks
+
     public ServiceUI() {
         this(ServiceUI.class.getName());
     }
@@ -182,7 +184,11 @@ public class ServiceUI extends IntentService {
 
     private void onClear(long group) {
         DB db = DB.getInstance(this);
-        int cleared = db.message().ignoreAll(group == 0 ? null : group, null);
+        int cleared;
+        if (group < 0)
+            cleared = db.message().ignoreAll(null, -group);
+        else
+            cleared = db.message().ignoreAll(group == 0 ? null : group, null);
         Log.i("Cleared=" + cleared);
     }
 
@@ -428,6 +434,7 @@ public class ServiceUI extends IntentService {
             thread.setAction("thread:" + message.thread);
             thread.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             thread.putExtra("account", message.account);
+            thread.putExtra("folder", message.folder);
             thread.putExtra("id", message.id);
             thread.putExtra("filter_archive", !EntityFolder.ARCHIVE.equals(folder.type));
             startActivity(thread);
@@ -457,14 +464,44 @@ public class ServiceUI extends IntentService {
                 }
             } else {
                 if (folder.notify) {
+                    List<EntityAttachment> attachments = db.attachment().getAttachments(id);
+
                     // A new message ID is needed for a new (wearable) notification
                     db.message().deleteMessage(id);
+
                     message.id = null;
                     message.fts = false;
                     message.id = db.message().insertMessage(message);
-                    if (message.content)
-                        EntityMessage.getFile(this, id)
-                                .renameTo(message.getFile(this));
+
+                    if (message.content) {
+                        File source = EntityMessage.getFile(this, id);
+                        File target = message.getFile(this);
+                        try {
+                            Helper.copy(source, target);
+                        } catch (IOException ex) {
+                            Log.e(ex);
+                            db.message().resetMessageContent(message.id);
+                        }
+                    }
+
+                    for (EntityAttachment attachment : attachments) {
+                        File source = attachment.getFile(this);
+
+                        attachment.id = null;
+                        attachment.message = message.id;
+                        attachment.progress = null;
+                        attachment.id = db.attachment().insertAttachment(attachment);
+
+                        if (attachment.available) {
+                            File target = attachment.getFile(this);
+                            try {
+                                Helper.copy(source, target);
+                            } catch (IOException ex) {
+                                Log.e(ex);
+                                db.attachment().setError(attachment.id, Log.formatThrowable(ex, false));
+                            }
+                        }
+                    }
                 }
                 db.message().setMessageSnoozed(message.id, null);
                 db.message().setMessageUnsnoozed(message.id, true);
@@ -552,7 +589,7 @@ public class ServiceUI extends IntentService {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
         if (set) {
             long now = new Date().getTime();
-            long interval = AlarmManager.INTERVAL_DAY * 14;
+            long interval = AlarmManager.INTERVAL_DAY * HIDE_BANNER * 7;
             long due = interval - (now % interval);
             long trigger = now + due;
             Log.i("Set banner alarm at " + new Date(trigger) + " due=" + due);

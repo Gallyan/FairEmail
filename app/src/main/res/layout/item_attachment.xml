@@ -15,12 +15,12 @@
 
         <ImageButton
             android:id="@+id/ibDelete"
-            android:layout_width="wrap_content"
-            android:layout_height="0dp"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
             android:background="?android:attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/title_legend_delete"
-            android:paddingEnd="12dp"
-            android:visibility="visible"
+            android:padding="6dp"
+            android:scaleType="fitCenter"
             app:layout_constraintBottom_toBottomOf="@+id/tvType"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
@@ -28,12 +28,23 @@
 
         <ImageView
             android:id="@+id/ivType"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:padding="3dp"
+            android:scaleType="fitCenter"
             app:layout_constraintBottom_toBottomOf="@+id/tvType"
             app:layout_constraintStart_toEndOf="@id/ibDelete"
             app:layout_constraintTop_toTopOf="parent"
-            app:srcCompat="@drawable/baseline_attachment_24" />
+            app:srcCompat="@drawable/file_bin" />
+
+        <ImageView
+            android:id="@+id/ivDisposition"
+            android:layout_width="12dp"
+            android:layout_height="12dp"
+            android:scaleType="fitCenter"
+            app:layout_constraintEnd_toEndOf="@id/ivType"
+            app:layout_constraintTop_toTopOf="@+id/ivType"
+            app:srcCompat="@drawable/attachment_disposition" />
 
         <eu.faircode.email.FixedTextView
             android:id="@+id/tvName"
@@ -41,8 +52,6 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
             android:layout_marginEnd="6dp"
-            android:ellipsize="middle"
-            android:singleLine="true"
             android:text="Name"
             android:textAppearance="@style/TextAppearance.AppCompat.Small"
             app:layout_constraintEnd_toStartOf="@+id/tvSize"
@@ -52,8 +61,11 @@
 
         <ImageView
             android:id="@+id/ivStatus"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginEnd="3dp"
+            android:padding="6dp"
+            android:scaleType="fitCenter"
             app:layout_constraintBottom_toBottomOf="@+id/tvType"
             app:layout_constraintEnd_toStartOf="@+id/ibSave"
             app:layout_constraintTop_toTopOf="parent"
@@ -61,11 +73,12 @@
 
         <ImageButton
             android:id="@+id/ibSave"
-            android:layout_width="wrap_content"
-            android:layout_height="0dp"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
             android:background="?android:attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/title_legend_save"
-            android:paddingStart="12dp"
+            android:padding="6dp"
+            android:scaleType="fitCenter"
             app:layout_constraintBottom_toBottomOf="@+id/tvType"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
@@ -101,13 +114,11 @@
             android:id="@+id/tvError"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="6dp"
-            android:layout_marginEnd="6dp"
             android:text="Error"
             android:textAppearance="@style/TextAppearance.AppCompat.Small"
             android:textColor="?attr/colorWarning"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@id/ivType"
+            app:layout_constraintStart_toStartOf="@id/tvName"
             app:layout_constraintTop_toBottomOf="@id/tvType" />
 
         <ProgressBar

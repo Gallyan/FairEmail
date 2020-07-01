@@ -44,7 +44,6 @@ import android.os.LocaleList;
 import android.os.Parcel;
 import android.os.PowerManager;
 import android.os.StatFs;
-import android.provider.DocumentsContract;
 import android.security.KeyChain;
 import android.security.KeyChainAliasCallback;
 import android.security.KeyChainException;
@@ -93,6 +92,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import org.jetbrains.annotations.NotNull;
+import org.openintents.openpgp.util.OpenPgpApi;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -351,10 +351,15 @@ public class Helper {
     }
 
     static boolean hasCustomTabs(Context context, Uri uri) {
+        String scheme = (uri == null ? null : uri.getScheme());
+        if (!"http".equals(scheme) && !"https".equals(scheme))
+            return false;
+
         PackageManager pm = context.getPackageManager();
         Intent view = new Intent(Intent.ACTION_VIEW, uri);
 
-        for (ResolveInfo info : pm.queryIntentActivities(view, 0)) {
+        List<ResolveInfo> ris = pm.queryIntentActivities(view, 0); // action whitelisted
+        for (ResolveInfo info : ris) {
             Intent intent = new Intent();
             intent.setAction(ACTION_CUSTOM_TABS_CONNECTION);
             intent.setPackage(info.activityInfo.packageName);
@@ -404,14 +409,29 @@ public class Helper {
         return (biometrics || !TextUtils.isEmpty(pin));
     }
 
+    static boolean isOpenKeychainInstalled(Context context) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        String provider = prefs.getString("openpgp_provider", "org.sufficientlysecure.keychain");
+
+        PackageManager pm = context.getPackageManager();
+        Intent intent = new Intent(OpenPgpApi.SERVICE_INTENT_2);
+        intent.setPackage(provider);
+        List<ResolveInfo> ris = pm.queryIntentServices(intent, 0);
+
+        return (ris.size() > 0);
+    }
+
     // View
 
     static Intent getChooser(Context context, Intent intent) {
-        PackageManager pm = context.getPackageManager();
-        if (pm.queryIntentActivities(intent, 0).size() == 1)
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            PackageManager pm = context.getPackageManager();
+            if (pm.queryIntentActivities(intent, 0).size() == 1)
+                return intent;
+            else
+                return Intent.createChooser(intent, context.getString(R.string.title_select_app));
+        } else
             return intent;
-        else
-            return Intent.createChooser(intent, context.getString(R.string.title_select_app));
     }
 
     static void share(Context context, File file, String type, String name) {
@@ -427,21 +447,39 @@ public class Helper {
             intent.putExtra(Intent.EXTRA_TITLE, Helper.sanitizeFilename(name));
         Log.i("Intent=" + intent + " type=" + type);
 
-        // Get targets
-        PackageManager pm = context.getPackageManager();
-        List<ResolveInfo> ris = pm.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY);
-        for (ResolveInfo ri : ris) {
-            Log.i("Target=" + ri);
-            context.grantUriPermission(ri.activityInfo.packageName, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            // Get targets
+            PackageManager pm = context.getPackageManager();
+            List<ResolveInfo> ris = pm.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY);
+            for (ResolveInfo ri : ris) {
+                Log.i("Target=" + ri);
+                context.grantUriPermission(ri.activityInfo.packageName, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            }
 
-        // Check if viewer available
-        if (ris.size() == 0) {
-            String message = context.getString(R.string.title_no_viewer,
-                    type != null ? type : name != null ? name : file.getName());
-            ToastEx.makeText(context, message, Toast.LENGTH_LONG).show();
-        } else
-            context.startActivity(intent);
+            // Check if viewer available
+            if (ris.size() == 0) {
+                if ("application/ms-tnef".equals(type))
+                    viewFAQ(context, 155);
+                else {
+                    String message = context.getString(R.string.title_no_viewer,
+                            type != null ? type : name != null ? name : file.getName());
+                    ToastEx.makeText(context, message, Toast.LENGTH_LONG).show();
+                }
+            } else
+                context.startActivity(intent);
+        } else {
+            try {
+                context.startActivity(intent);
+            } catch (ActivityNotFoundException ex) {
+                if ("application/ms-tnef".equals(type))
+                    viewFAQ(context, 155);
+                else {
+                    String message = context.getString(R.string.title_no_viewer,
+                            type != null ? type : name != null ? name : file.getName());
+                    ToastEx.makeText(context, message, Toast.LENGTH_LONG).show();
+                }
+            }
+        }
     }
 
     static void view(Context context, Intent intent) {
@@ -449,15 +487,26 @@ public class Helper {
         if ("http".equals(uri.getScheme()) || "https".equals(uri.getScheme()))
             view(context, intent.getData(), false);
         else
-            context.startActivity(intent);
+            try {
+                context.startActivity(intent);
+            } catch (ActivityNotFoundException ex) {
+                Log.w(ex);
+                ToastEx.makeText(context, context.getString(R.string.title_no_viewer, uri), Toast.LENGTH_LONG).show();
+            }
     }
 
     static void view(Context context, Uri uri, boolean browse) {
+        view(context, uri, browse, false);
+    }
+
+    static void view(Context context, Uri uri, boolean browse, boolean task) {
         Log.i("View=" + uri);
 
         if (browse || !hasCustomTabs(context, uri)) {
             try {
                 Intent view = new Intent(Intent.ACTION_VIEW, uri);
+                if (task)
+                    view.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 context.startActivity(getChooser(context, view));
             } catch (Throwable ex) {
                 Log.e(ex);
@@ -469,15 +518,17 @@ public class Helper {
             builder.setToolbarColor(resolveColor(context, R.attr.colorPrimary));
             builder.setSecondaryToolbarColor(resolveColor(context, R.attr.colorPrimaryDark));
             builder.setColorScheme(Helper.isDarkTheme(context)
-                    ? CustomTabsIntent.COLOR_SCHEME_DARK : CustomTabsIntent.COLOR_SCHEME_LIGHT);
-            builder.addDefaultShareMenuItem();
+                    ? CustomTabsIntent.COLOR_SCHEME_DARK
+                    : CustomTabsIntent.COLOR_SCHEME_LIGHT);
+            builder.setDefaultShareMenuItemEnabled(true);
+            builder.setUrlBarHidingEnabled(true);
 
             CustomTabsIntent customTabsIntent = builder.build();
             try {
                 customTabsIntent.launchUrl(context, uri);
             } catch (ActivityNotFoundException ex) {
                 Log.w(ex);
-                ToastEx.makeText(context, context.getString(R.string.title_no_viewer, uri.toString()), Toast.LENGTH_LONG).show();
+                ToastEx.makeText(context, context.getString(R.string.title_no_viewer, uri), Toast.LENGTH_LONG).show();
             } catch (Throwable ex) {
                 Log.e(ex);
                 ToastEx.makeText(context, Log.formatThrowable(ex, false), Toast.LENGTH_LONG).show();
@@ -515,12 +566,6 @@ public class Helper {
             view(context, Uri.parse(FAQ_URI + "#user-content-faq" + question), false);
     }
 
-    static Intent getIntentOpenKeychain() {
-        Intent intent = new Intent(Intent.ACTION_VIEW);
-        intent.setData(Uri.parse(BuildConfig.OPENKEYCHAIN_URI));
-        return intent;
-    }
-
     static String getOpenKeychainPackage(Context context) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
         return prefs.getString("openpgp_provider", "org.sufficientlysecure.keychain");
@@ -548,10 +593,7 @@ public class Helper {
     }
 
     static Intent getIntentRate(Context context) {
-        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=" + BuildConfig.APPLICATION_ID));
-        if (intent.resolveActivity(context.getPackageManager()) == null)
-            intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=" + BuildConfig.APPLICATION_ID));
-        return intent;
+        return new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=" + BuildConfig.APPLICATION_ID));
     }
 
     static long getInstallTime(Context context) {
@@ -713,23 +755,6 @@ public class Helper {
             return getTimeInstance(context, SimpleDateFormat.SHORT).format(millis);
         else
             return DateUtils.getRelativeTimeSpanString(context, millis);
-    }
-
-    static String localizeFolderType(Context context, String type) {
-        int resid = context.getResources().getIdentifier(
-                "title_folder_" + type.toLowerCase(Locale.ROOT),
-                "string",
-                context.getPackageName());
-        return (resid > 0 ? context.getString(resid) : type);
-    }
-
-    static String localizeFolderName(Context context, String name) {
-        if (name != null && "INBOX".equals(name.toUpperCase(Locale.ROOT)))
-            return context.getString(R.string.title_folder_inbox);
-        else if ("OUTBOX".equals(name))
-            return context.getString(R.string.title_folder_outbox);
-        else
-            return name;
     }
 
     static void linkPro(final TextView tv) {
@@ -1079,7 +1104,7 @@ public class Helper {
         return false;
     }
 
-    static void authenticate(final FragmentActivity activity,
+    static void authenticate(final FragmentActivity activity, final LifecycleOwner owner,
                              Boolean enabled, final
                              Runnable authenticated, final Runnable cancelled) {
         final Handler handler = new Handler();
@@ -1104,7 +1129,7 @@ public class Helper {
                     ? R.string.title_setup_biometrics_disable
                     : R.string.title_setup_biometrics_enable));
 
-            BiometricPrompt prompt = new BiometricPrompt(activity, executor,
+            final BiometricPrompt prompt = new BiometricPrompt(activity, executor,
                     new BiometricPrompt.AuthenticationCallback() {
                         @Override
                         public void onAuthenticationError(final int errorCode, @NonNull final CharSequence errString) {
@@ -1140,6 +1165,27 @@ public class Helper {
                     });
 
             prompt.authenticate(info.build());
+
+            final Runnable cancelPrompt = new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        prompt.cancelAuthentication();
+                    } catch (Throwable ex) {
+                        Log.e(ex);
+                    }
+                }
+            };
+
+            handler.postDelayed(cancelPrompt, 60 * 1000L);
+
+            owner.getLifecycle().addObserver(new LifecycleObserver() {
+                @OnLifecycleEvent(Lifecycle.Event.ON_DESTROY)
+                public void onDestroy() {
+                    handler.post(cancelPrompt);
+                }
+            });
+
         } else {
             final View dview = LayoutInflater.from(activity).inflate(R.layout.dialog_pin_ask, null);
             final EditText etPin = dview.findViewById(R.id.etPin);
@@ -1341,6 +1387,12 @@ public class Helper {
     }
 
     static boolean equal(String[] a1, String[] a2) {
+        if (a1 == null && a2 == null)
+            return true;
+
+        if (a1 == null || a2 == null)
+            return false;
+
         if (a1.length != a2.length)
             return false;
 

@@ -23,10 +23,12 @@ import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.TextUtils;
+import android.util.Base64;
 import android.util.Pair;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -62,17 +64,15 @@ import net.openid.appauth.browser.Browsers;
 import net.openid.appauth.browser.VersionRange;
 import net.openid.appauth.browser.VersionedBrowserMatcher;
 
-import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import javax.mail.AuthenticationFailedException;
 
 import static android.app.Activity.RESULT_OK;
 
@@ -94,6 +94,7 @@ public class FragmentOAuth extends FragmentBase {
 
     private TextView tvError;
     private TextView tvGmailDraftsHint;
+    private TextView tvOfficeAuthHint;
     private Button btnSupport;
 
     private Group grpError;
@@ -130,6 +131,7 @@ public class FragmentOAuth extends FragmentBase {
 
         tvError = view.findViewById(R.id.tvError);
         tvGmailDraftsHint = view.findViewById(R.id.tvGmailDraftsHint);
+        tvOfficeAuthHint = view.findViewById(R.id.tvOfficeAuthHint);
         btnSupport = view.findViewById(R.id.btnSupport);
 
         grpError = view.findViewById(R.id.grpError);
@@ -224,6 +226,8 @@ public class FragmentOAuth extends FragmentBase {
                     throw new IllegalArgumentException(getString(R.string.title_email_invalid, email));
             }
 
+            etName.setEnabled(false);
+            etEmail.setEnabled(false);
             btnOAuth.setEnabled(false);
             pbOAuth.setVisibility(View.VISIBLE);
             hideError();
@@ -282,16 +286,15 @@ public class FragmentOAuth extends FragmentBase {
             if ("gmail".equals(provider.id))
                 authRequestBuilder.setPrompt("consent");
 
-            if ("outlook".equals(provider.id))
+            if ("office365".equals(provider.id))
                 authRequestBuilder.setPrompt("select_account");
 
             AuthorizationRequest authRequest = authRequestBuilder.build();
 
-            Log.i("OAuth request provider=" + provider.id);
-            if (BuildConfig.DEBUG)
-                Log.i("OAuth uri=" + authRequest.toUri());
+            Log.i("OAuth request provider=" + provider.id + " uri=" + authRequest.toUri());
             Intent authIntent = authService.getAuthorizationRequestIntent(authRequest);
-            if (authIntent.resolveActivity(getContext().getPackageManager()) == null)
+            PackageManager pm = getContext().getPackageManager();
+            if (authIntent.resolveActivity(pm) == null) // action whitelisted
                 throw new ActivityNotFoundException(authIntent.toString());
             else
                 startActivityForResult(authIntent, ActivitySetup.REQUEST_OAUTH);
@@ -302,6 +305,9 @@ public class FragmentOAuth extends FragmentBase {
 
     private void onHandleOAuth(@NonNull Intent data) {
         try {
+            etName.setEnabled(true);
+            etEmail.setEnabled(true);
+
             AuthorizationResponse auth = AuthorizationResponse.fromIntent(data);
             if (auth == null)
                 throw AuthorizationException.fromIntent(data);
@@ -340,6 +346,8 @@ public class FragmentOAuth extends FragmentBase {
                                     throw error;
 
                                 Log.i("OAuth got token provider=" + provider.id);
+                                if (BuildConfig.DEBUG)
+                                    Log.i("TokenResponse=" + access.jsonSerializeString());
                                 authState.update(access, null);
                                 if (BuildConfig.DEBUG)
                                     Log.i("OAuth response=" + authState.jsonSerializeString());
@@ -347,7 +355,7 @@ public class FragmentOAuth extends FragmentBase {
                                 if (TextUtils.isEmpty(access.refreshToken))
                                     throw new IllegalStateException("No refresh token");
 
-                                onOAuthorized(access.accessToken, authState);
+                                onOAuthorized(access.accessToken, access.idToken, authState);
                             } catch (Throwable ex) {
                                 showError(ex);
                             }
@@ -358,11 +366,12 @@ public class FragmentOAuth extends FragmentBase {
         }
     }
 
-    private void onOAuthorized(String accessToken, AuthState state) {
+    private void onOAuthorized(String accessToken, String idToken, AuthState state) {
         Bundle args = new Bundle();
         args.putString("id", id);
         args.putString("name", name);
         args.putString("token", accessToken);
+        args.putString("jwt", idToken);
         args.putString("state", state.jsonSerializeString());
         args.putBoolean("askAccount", askAccount);
         args.putString("personal", etName.getText().toString().trim());
@@ -374,53 +383,62 @@ public class FragmentOAuth extends FragmentBase {
                 String id = args.getString("id");
                 String name = args.getString("name");
                 String token = args.getString("token");
+                String jwt = args.getString("jwt");
                 String state = args.getString("state");
                 boolean askAccount = args.getBoolean("askAccount", false);
                 String personal = args.getString("personal");
                 String address = args.getString("address");
 
-                String primaryEmail = null;
+                EmailProvider provider = EmailProvider.getProvider(context, id);
+                String aprotocol = (provider.imap.starttls ? "imap" : "imaps");
+
+                if (accessToken != null) {
+                    String[] segments = accessToken.split("\\.");
+                    if (segments.length > 1)
+                        try {
+                            String payload = new String(Base64.decode(segments[1], Base64.DEFAULT));
+                            EntityLog.log(context, "token payload=" + payload);
+                        } catch (Throwable ex) {
+                            Log.w(ex);
+                        }
+                }
+
+                if (jwt != null) {
+                    // https://docs.microsoft.com/en-us/azure/active-directory/develop/id-tokens
+                    String[] segments = jwt.split("\\.");
+                    if (segments.length > 1)
+                        try {
+                            String payload = new String(Base64.decode(segments[1], Base64.DEFAULT));
+                            EntityLog.log(context, "jwt payload=" + payload);
+                            JSONObject jpayload = new JSONObject(payload);
+                            if (jpayload.has("email")) {
+                                String email = jpayload.getString("email");
+                                if (!TextUtils.isEmpty(email) && !email.equals(address)) {
+                                    try (EmailService iservice = new EmailService(
+                                            context, aprotocol, null, false, EmailService.PURPOSE_CHECK, true)) {
+                                        iservice.connect(
+                                                provider.imap.host, provider.imap.port,
+                                                EmailService.AUTH_TYPE_OAUTH, provider.id,
+                                                email, state,
+                                                null, null);
+                                        address = email;
+                                        Log.i("jwt email=" + email);
+                                    } catch (Throwable ex) {
+                                        Log.w(ex);
+                                    }
+                                }
+                            }
+                        } catch (Throwable ex) {
+                            Log.e(ex);
+                        }
+                }
+
+                String primaryEmail;
                 List<Pair<String, String>> identities = new ArrayList<>();
 
                 if (askAccount) {
                     primaryEmail = address;
                     identities.add(new Pair<>(address, personal));
-                } else if ("outlook".equals(id)) {
-                    // https://docs.microsoft.com/en-us/graph/api/user-get?view=graph-rest-1.0&tabs=http#http-request
-                    URL url = new URL("https://graph.microsoft.com/v1.0/me?$select=displayName,otherMails");
-                    Log.i("Fetching " + url);
-
-                    HttpURLConnection request = (HttpURLConnection) url.openConnection();
-                    request.setRequestMethod("GET");
-                    request.setReadTimeout(OAUTH_TIMEOUT);
-                    request.setConnectTimeout(OAUTH_TIMEOUT);
-                    request.setDoInput(true);
-                    request.setRequestProperty("Authorization", "Bearer " + token);
-                    request.setRequestProperty("Content-Type", "application/json");
-                    request.connect();
-
-                    String json;
-                    try {
-                        json = Helper.readStream(request.getInputStream(), StandardCharsets.UTF_8.name());
-                        Log.i("Response=" + json);
-                    } finally {
-                        request.disconnect();
-                    }
-
-                    JSONObject data = new JSONObject(json);
-                    if (data.has("otherMails")) {
-                        JSONArray otherMails = data.getJSONArray("otherMails");
-
-                        String displayName = data.getString("displayName");
-                        for (int i = 0; i < otherMails.length(); i++) {
-                            String email = (String) otherMails.get(i);
-                            if (i == 0)
-                                primaryEmail = email;
-                            if (TextUtils.isEmpty(displayName))
-                                displayName = name;
-                            identities.add(new Pair<>(email, displayName));
-                        }
-                    }
                 } else
                     throw new IllegalArgumentException("Unknown provider=" + id);
 
@@ -431,12 +449,9 @@ public class FragmentOAuth extends FragmentBase {
                 for (Pair<String, String> identity : identities)
                     Log.i("OAuth identity=" + identity.first + "/" + identity.second);
 
-                EmailProvider provider = EmailProvider.getProvider(context, id);
-
                 List<EntityFolder> folders;
 
                 Log.i("OAuth checking IMAP provider=" + provider.id);
-                String aprotocol = (provider.imap.starttls ? "imap" : "imaps");
                 try (EmailService iservice = new EmailService(
                         context, aprotocol, null, false, EmailService.PURPOSE_CHECK, true)) {
                     iservice.connect(
@@ -563,6 +578,8 @@ public class FragmentOAuth extends FragmentBase {
     }
 
     private void onHandleCancel() {
+        etName.setEnabled(true);
+        etEmail.setEnabled(true);
         btnOAuth.setEnabled(true);
         pbOAuth.setVisibility(View.GONE);
     }
@@ -582,6 +599,12 @@ public class FragmentOAuth extends FragmentBase {
         if ("gmail".equals(id))
             tvGmailDraftsHint.setVisibility(View.VISIBLE);
 
+        if ("office365".equals(id) &&
+                ex instanceof AuthenticationFailedException)
+            tvOfficeAuthHint.setVisibility(View.VISIBLE);
+
+        etName.setEnabled(true);
+        etEmail.setEnabled(true);
         btnOAuth.setEnabled(true);
         pbOAuth.setVisibility(View.GONE);
 
@@ -596,5 +619,6 @@ public class FragmentOAuth extends FragmentBase {
     private void hideError() {
         grpError.setVisibility(View.GONE);
         tvGmailDraftsHint.setVisibility(View.GONE);
+        tvOfficeAuthHint.setVisibility(View.GONE);
     }
 }

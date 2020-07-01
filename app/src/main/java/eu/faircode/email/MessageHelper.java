@@ -109,6 +109,7 @@ public class MessageHelper {
 
     static final int SMALL_MESSAGE_SIZE = 64 * 1024; // bytes
     static final int DEFAULT_ATTACHMENT_DOWNLOAD_SIZE = 256 * 1024; // bytes
+    static final String HEADER_CORRELATION_ID = "X-Correlation-ID";
 
     private static final int MAX_MESSAGE_SIZE = 10 * 1024 * 1024; // bytes
     private static final long ATTACHMENT_PROGRESS_UPDATE = 1500L; // milliseconds
@@ -180,7 +181,7 @@ public class MessageHelper {
             imessage.addHeader("References", message.references);
         if (message.inreplyto != null)
             imessage.addHeader("In-Reply-To", message.inreplyto);
-        imessage.addHeader("X-Correlation-ID", message.msgid);
+        imessage.addHeader(HEADER_CORRELATION_ID, message.msgid);
 
         // Addresses
         if (message.from != null && message.from.length > 0) {
@@ -538,12 +539,17 @@ public class MessageHelper {
             return;
         }
 
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        boolean autolist = prefs.getBoolean("autolist", true);
+        boolean format_flowed = prefs.getBoolean("format_flowed", false);
+
         // Build html body
         Document document = JsoupEx.parse(message.getFile(context));
 
         // When sending message
         if (identity != null) {
-            HtmlHelper.convertLists(document);
+            if (autolist)
+                HtmlHelper.convertLists(document);
 
             if (send) {
                 document.select("div[fairemail=signature]").removeAttr("fairemail");
@@ -604,9 +610,6 @@ public class MessageHelper {
                 db.endTransaction();
             }
         }
-
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-        boolean format_flowed = prefs.getBoolean("format_flowed", false);
 
         // multipart/mixed
         //   multipart/related
@@ -789,7 +792,7 @@ public class MessageHelper {
         ensureMessage(false);
 
         // Outlook outbox -> sent
-        String header = imessage.getHeader("X-Correlation-ID", null);
+        String header = imessage.getHeader(HEADER_CORRELATION_ID, null);
         if (header == null)
             header = imessage.getHeader("Message-ID", null);
         return (header == null ? null : MimeUtility.unfold(header));
@@ -941,6 +944,20 @@ public class MessageHelper {
         return thread;
     }
 
+    String[] getLabels() throws MessagingException {
+        //ensureMessage(false);
+
+        List<String> labels = new ArrayList<>();
+        if (imessage instanceof GmailMessage)
+            for (String label : ((GmailMessage) imessage).getLabels())
+                if (!label.startsWith("\\"))
+                    labels.add(label);
+
+        Collections.sort(labels);
+
+        return labels.toArray(new String[0]);
+    }
+
     Integer getPriority() throws MessagingException {
         Integer priority = null;
 
@@ -974,9 +991,11 @@ public class MessageHelper {
             priority = EntityMessage.PRIORITIY_HIGH;
         else if ("normal".equalsIgnoreCase(header) ||
                 "medium".equalsIgnoreCase(header) ||
-                "med".equalsIgnoreCase(header))
+                "med".equalsIgnoreCase(header) ||
+                "none".equalsIgnoreCase(header))
             priority = EntityMessage.PRIORITIY_NORMAL;
         else if ("low".equalsIgnoreCase(header) ||
+                "lowest".equalsIgnoreCase(header) ||
                 "non-urgent".equalsIgnoreCase(header) ||
                 "marketing".equalsIgnoreCase(header) ||
                 "bulk".equalsIgnoreCase(header) ||
@@ -1016,31 +1035,39 @@ public class MessageHelper {
         return getAddressHeader("Disposition-Notification-To");
     }
 
-    String getAuthentication() throws MessagingException {
+    String[] getAuthentication() throws MessagingException {
         ensureMessage(false);
 
-        String header = imessage.getHeader("Authentication-Results", null);
-        return (header == null ? null : MimeUtility.unfold(header));
+        String[] headers = imessage.getHeader("Authentication-Results");
+        if (headers == null)
+            return null;
+
+        for (int i = 0; i < headers.length; i++)
+            headers[i] = MimeUtility.unfold(headers[i]);
+
+        return headers;
     }
 
-    static Boolean getAuthentication(String type, String header) {
-        if (header == null)
+    static Boolean getAuthentication(String type, String[] headers) {
+        if (headers == null)
             return null;
 
         // https://tools.ietf.org/html/rfc7601
         Boolean result = null;
-        String[] part = header.split(";");
-        for (int i = 1; i < part.length; i++) {
-            String[] kv = part[i].split("=");
-            if (kv.length > 1) {
-                String key = kv[0].trim();
-                String[] val = kv[1].trim().split(" ");
-                if (val.length > 0 && type.equals(key)) {
-                    if ("fail".equals(val[0]))
-                        result = false;
-                    else if ("pass".equals(val[0]))
-                        if (result == null)
-                            result = true;
+        for (String header : headers) {
+            String[] part = header.split(";");
+            for (int i = 1; i < part.length; i++) {
+                String[] kv = part[i].split("=");
+                if (kv.length > 1) {
+                    String key = kv[0].trim();
+                    String[] val = kv[1].trim().split(" ");
+                    if (val.length > 0 && type.equals(key)) {
+                        if ("fail".equals(val[0]))
+                            result = false;
+                        else if ("pass".equals(val[0]))
+                            if (result == null)
+                                result = true;
+                    }
                 }
             }
         }
@@ -1282,8 +1309,10 @@ public class MessageHelper {
     Long getSent() throws MessagingException {
         ensureMessage(false);
 
-        Date date = imessage.getSentDate();
-        return (date == null ? null : date.getTime());
+        Date sent = imessage.getSentDate();
+        if (sent == null)
+            sent = imessage.getReceivedDate();
+        return (sent == null ? new Date() : sent).getTime();
     }
 
     String getHeaders() throws MessagingException {
@@ -1871,14 +1900,18 @@ public class MessageHelper {
             MimePart part = imessage;
 
             if (part.isMimeType("multipart/mixed")) {
-                Multipart mp = (Multipart) part.getContent();
-                for (int i = 0; i < mp.getCount(); i++) {
-                    BodyPart bp = mp.getBodyPart(i);
-                    if (bp.isMimeType("multipart/signed") || bp.isMimeType("multipart/encrypted")) {
-                        part = (MimePart) bp;
-                        break;
+                Object content = part.getContent();
+                if (content instanceof Multipart) {
+                    Multipart mp = (Multipart) content;
+                    for (int i = 0; i < mp.getCount(); i++) {
+                        BodyPart bp = mp.getBodyPart(i);
+                        if (bp.isMimeType("multipart/signed") || bp.isMimeType("multipart/encrypted")) {
+                            part = (MimePart) bp;
+                            break;
+                        }
                     }
-                }
+                } else
+                    Log.e("Mixed type=" + (content == null ? null : content.getClass().getName()));
             }
 
             if (part.isMimeType("multipart/signed")) {
@@ -1998,14 +2031,11 @@ public class MessageHelper {
                 try {
                     contentType = new ContentType(part.getContentType());
                 } catch (ParseException ex) {
-                    Log.w(ex);
-
                     if (part instanceof MimeMessage)
-                        contentType = new ContentType("text/html");
+                        Log.e("MimeMessage content type=" + ex.getMessage());
                     else
-                        contentType = new ContentType(Helper.guessMimeType(filename));
-
-                    Log.i("Content type guessed=" + contentType);
+                        Log.w(ex);
+                    contentType = new ContentType(Helper.guessMimeType(filename));
                 }
 
                 boolean plain = "text/plain".equalsIgnoreCase(contentType.getBaseType());

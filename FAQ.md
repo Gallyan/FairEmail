@@ -28,11 +28,13 @@ for instance when two factor authentication is enabled.
 
 For authorizing:
 
-* Gmail / G suite: see [question 6](#user-content-faq6)
-* Outlook / Hotmail: see [question 14](#user-content-faq14)
-* Microsoft Exchange: see [question 8](#user-content-faq8)
-* Yahoo!: see [question 88](#user-content-faq88)
-* Apple iCloud: see [question 148](#user-content-faq148)
+* Gmail / G suite, see [question 6](#user-content-faq6)
+* Outlook / Live / Hotmail, see [question 14](#user-content-faq14)
+* Office365, see [question 14](#user-content-faq156)
+* Microsoft Exchange, see [question 8](#user-content-faq8)
+* Yahoo!, see [question 88](#user-content-faq88)
+* Apple iCloud, see [question 148](#user-content-faq148)
+* Free.fr, see [question 157](#user-content-faq157)
 
 Please see [here](#user-content-faq22) for common error messages.
 
@@ -47,6 +49,7 @@ Related questions:
 
 * Change the account name: Setup, step 1, Manage, tap account
 * Change the swipe left/right target: Setup, Behavior, Set swipe actions
+* Change password: Setup, step 1, Manage, tap account, change password
 * Set a signature: Setup, step 2, Manage, tap identity, Edit signature.
 * Add CC and BCC addresses: tap the people's icon at the end of the subject
 * Go to the next/previous message on archive/delete: in the behavior settings disable *Automatically close conversations* and select *Go to next/previous conversation* for *On closing a conversation*
@@ -56,7 +59,9 @@ Related questions:
 * Delete a message, skipping trash: in the 3-dots menu just above the message text *Delete* or alternatively, unselect the trash folder in the account settings
 * Delete an account/identity: Setup step 1/2, Manage, tap account/identity, three-dots menu, Delete
 * Delete a folder: long press the folder in the folder list, Edit properties, three-dots menu, Delete
+* Undo send: Outbox, tap message, tap undo icon button
 * Store sent messages in the inbox: please [see this FAQ](#user-content-faq142)
+* Change system folders: Setup, step 1, Manage, tap account, at the bottom
 * Export/import settings: Setup, navigation/hamburger menu
 
 ## Known problems
@@ -107,7 +112,7 @@ Related questions:
 * ~~Unified starred messages view~~ (there is already a special search for this)
 * ~~Notification move action~~
 * ~~S/MIME support~~
-* Search for settings: low priority
+* ~~Search for settings~~
 
 Anything on this list is in random order and *might* be added in the near future.
 
@@ -133,7 +138,7 @@ Fonts, sizes, colors, etc should be material design whenever possible.
 * [~~(10) What does 'UIDPLUS not supported' mean?~~](#user-content-faq10)
 * [(12) How does encryption/decryption work?](#user-content-faq12)
 * [(13) How does search on device/server work?](#user-content-faq13)
-* [(14) How can I setup Outlook / Live / Hotmail with 2FA?](#user-content-faq14)
+* [(14) How can I set up an Outlook / Live / Hotmail account?](#user-content-faq14)
 * [(15) Why does the message text keep loading?](#user-content-faq15)
 * [(16) Why are messages not being synchronized?](#user-content-faq16)
 * [~~(17) Why does manual synchronize not work?~~](#user-content-faq17)
@@ -236,7 +241,7 @@ Fonts, sizes, colors, etc should be material design whenever possible.
 * [~~(116) How can I show images in messages from trusted senders by default?~~](#user-content-faq116)
 * [(117) Can you help me restore my purchase?](#user-content-faq117)
 * [(118) What does 'Remove tracking parameters' exactly?](#user-content-faq118)
-* [(119) Can you add colors to the unified inbox widget?](#user-content-faq119)
+* [~~(119) Can you add colors to the unified inbox widget?~~](#user-content-faq119)
 * [(120) Why are new message notifications not removed on opening the app?](#user-content-faq120)
 * [(121) How are messages grouped into a conversation?](#user-content-faq121)
 * [~~(122) Why is the recipient name/email address show with a warning color?~~](#user-content-faq122)
@@ -271,7 +276,11 @@ Fonts, sizes, colors, etc should be material design whenever possible.
 * [(151) Can you add backup/restore messages?](#user-content-faq151)
 * [(152) How can I insert a contact group?](#user-content-faq152)
 * [(153) Why does permanently deleting Gmail message not work?](#user-content-faq153)
-* [(154) Can you add favicons as contact photos?](#user-content-faq154)
+* [~~(154) Can you add favicons as contact photos?~~](#user-content-faq154)
+* [(155) What is a winmail.dat file?](#user-content-faq155)
+* [(156) How can I set up an Office365 account?](#user-content-faq156)
+* [(157) How can I set up an Free.fr account?](#user-content-faq157)
+* [(158) Which camera / audio recorder do you recommend?](#user-content-faq158)
 
 [I have another question.](#user-content-support)
 
@@ -338,7 +347,10 @@ with the "side effect" that new messages are often not or late being reported an
 Android shows icons of high priority status bar notifications first and will hide the icon of FairEmail's notification if there is no space to show icons anymore.
 In practice this means that the status bar notification doesn't take space in the status bar, unless there is space available.
 
-On Android 8 Oreo and later it is possible to disable the status bar notification via the notification settings of FairEmail (service channel).
+The status bar notification can be disabled via the notification settings of FairEmail:
+
+* Android 8 Oreo and later: tap the *Service channel* button and disable the notification channel via the Android settings
+* Android 7 Nougat and before: enabled *Use background service to synchronize messages*, but be sure to read the remark below the setting
 
 You can switch to periodically synchronization of messages in the receive settings to remove the notification, but be aware that this might use more battery power.
 See [here](#user-content-faq39) for more details about battery usage.
@@ -368,6 +380,7 @@ The low priority status bar notification shows the number of pending operations,
 * *answered*: mark message as answered in remote folder
 * *flag*: add/remove star in remote folder
 * *keyword*: add/remove IMAP flag in remote folder
+* *label*: set/reset Gmail label in remote folder
 * *headers*: download message headers
 * *raw*: download raw message
 * *body*: download message text
@@ -471,9 +484,10 @@ Unfortunately, it is impossible to make everybody happy and adding lots of setti
 
 You can use the quick setup wizard to easily setup a Gmail account and identity.
 
-If you don't want to use an on device Gmail account,
+If you don't want to use an on-device Gmail account,
 you can either enable access for "less secure apps" and use your account password
 or enable two factor authentication and use an app specific password.
+Please see [this FAQ](#user-content-faq111) about why it is not possible to non on-device accounts.
 
 Note that an app specific password is required when two factor authentication is enabled.
 
@@ -646,16 +660,18 @@ If you want to undo decryption, you can use the *resync* menu item in the three-
 You'll need to install and configure [OpenKeychain](https://f-droid.org/en/packages/org.sufficientlysecure.keychain/) first.
 FairEmail was tested with OpenKeychain version 5.4. Later versions will most likely be compatible, but earlier versions might not be.
 
-The OpenKeychain app is known to (silently) crash when the calling app (FairEmail) is not authorized yet and is getting an existing public key.
+**Important**: the OpenKeychain app is known to (silently) crash when the calling app (FairEmail) is not authorized yet and is getting an existing public key.
 You can workaround this by trying to send a signed/encrypted message to a sender with an unknown public key.
 
-If the OpenKeychain app cannot find a key (anymore), you might need to reset a previously selected key.
+**Important**: if the OpenKeychain app cannot find a key (anymore), you might need to reset a previously selected key.
 This can be done by long pressing an identity in the list of identities (Setup, step 2, Manage).
 
-To let apps like FairEmail reliably connect to the OpenKeychain service to encrypt/decrypt messages,
+**Important**: to let apps like FairEmail reliably connect to the OpenKeychain service to encrypt/decrypt messages,
 it might be necessary to disable battery optimizations for the OpenKeychain app.
-On some Android versions / devices it is necessary to enable *Show popups while running in background*
+
+**Important**: on some Android versions / devices it is necessary to enable *Show popups while running in background*
 in the additional permissions of the Android app settings of the OpenKeychain app.
+Without this permission the draft will be saved, but the OpenKeychain popup to confirm/select might not appear.
 
 FairEmail will send the [Autocrypt](https://autocrypt.org/) headers for use by other email clients
 and send received Autocrypt headers to the OpenKeychain app for storage.
@@ -775,12 +791,16 @@ Searching messages on the device is a free feature, searching messages on the se
 <br />
 
 <a name="faq14"></a>
-**(14) How can I setup Outlook / Live / Hotmail with 2FA?**
+**(14) How can I set up an Outlook / Live / Hotmail account?**
+
+An Outlook / Live / Hotmail account can be set up via the quick setup wizard and selecting *Outlook*.
 
 To use an Outlook, Live or Hotmail account with two factor authentication enabled, you need to create an app password.
 See [here](https://support.microsoft.com/en-us/help/12409/microsoft-account-app-passwords-two-step-verification) for the details.
 
 See [here](https://support.office.com/en-us/article/pop-imap-and-smtp-settings-for-outlook-com-d088b986-291d-42b8-9564-9c414e2aa040) for Microsoft's instructions.
+
+For setting up an Office365 account, please see [this FAQ](#user-content-faq156).
 
 <br />
 
@@ -1152,14 +1172,14 @@ You can use the [Email Privacy Tester](https://www.emailprivacytester.com/) for 
 
 Most providers accept validated addresses only when sending messages to prevent spam.
 
-For example Google modifies the message headers like this:
+For example Google modifies the message headers like this for *unverified* addresses:
 
 ```
 From: Somebody <somebody@example.org>
 X-Google-Original-From: Somebody <somebody+extra@example.org>
 ```
 
-This means that the edited sender address was automatically replaced by a validated address before sending the message.
+This means that the edited sender address was automatically replaced by a verified address before sending the message.
 
 Note that this is independent of receiving messages.
 
@@ -1777,7 +1797,7 @@ The following rule conditions are available:
 * Subject contains
 * Has attachments
 * Header contains
-* Time between
+* Day/time between
 
 All the conditions of a rule need to be true for the rule action to be executed.
 All conditions are optional, but there needs to be at least one condition, to prevent matching all messages.
@@ -1805,19 +1825,22 @@ You can select one of these actions to apply to matching messages:
 * Add keyword
 * Move
 * Copy (Gmail: label)
-* Reply template
+* Answer (with template)
 * Automation (Tasker, etc)
 
 Rules are applied directly after the message header has been fetched, but before the message text has been downloaded,
 so it is not possible to apply conditions and actions to the message text.
-Note that large message texts are downloaded on demand on a metered connection to save data.
+Note that large message texts are downloaded on demand on a metered connection to save on data usage.
+
+If you want to forward a message, consider to use the move action instead.
+This will be more reliable than forwarding as well because forwarded messages might be considered as spam.
 
 Since message headers are not downloaded and stored by default to save on battery and data usage and to save storage space
-it is not possible to preview which messages would match the header rule condition.
+it is not possible to preview which messages would match a header rule condition.
 
-In the *more* message menu there is an item to create a rule for a received message with the most common conditions filled in.
+In the three-dots *more* message menu there is an item to create a rule for a received message with the most common conditions filled in.
 
-Rules are available for IMAP accounts only because the POP3 protocol allows downloading and permanently deleting messages from the inbox only.
+The POP3 protocol does not support setting keywords and moving or copying messages.
 
 Using rules is a pro feature.
 
@@ -2096,10 +2119,12 @@ You might want to create a new identity for this if you want/need to select send
 <a name="faq90"></a>
 **(90) Why are some texts linked while not being a link?**
 
-FairEmail will automatically link not linked web [IRI](https://nl.wikipedia.org/wiki/Internationalized_resource_identifier)s for your convenience.
+FairEmail will automatically link not linked web links (http and https) and not linked email addresses (mailto) for your convenience.
 However, texts and links are not easily distinguished,
 especially not with lots of [top level domains](https://en.wikipedia.org/wiki/List_of_Internet_top-level_domains) being words.
 This is why texts with dots are sometimes incorrectly recognized as links, which is better than not recognizing some links.
+
+Links for less usual protocols like telnet and ftp will not automatically be linked.
 
 <br />
 
@@ -2213,7 +2238,7 @@ However, picking contacts is delegated to and done by Android and not by FairEma
 <a name="faq99"></a>
 **(99) Can you add a rich text or markdown editor?**
 
-FairEmail provides common text formatting (bold, italic, underline, text size and color) via the Android text selection menu.
+FairEmail provides common text formatting (bold, italic, underline, text size and color) via a toolbar that appears after selecting some text.
 
 A [Rich text](https://en.wikipedia.org/wiki/Formatted_text) or [Markdown](https://en.wikipedia.org/wiki/Markdown) editor
 would not be used by many people on a small mobile device and, more important,
@@ -2327,6 +2352,14 @@ despite FairEmail explicitly requesting not to show a badge for this notificatio
 
 Note that Tesla Unread is [not supported anymore](https://forum.xda-developers.com/android/general/bad-news-tesla-unread-devoloper-t3920415).
 
+FairEmail does send a new message count intent as well:
+
+```
+eu.faircode.email.NEW_MESSAGE_COUNT
+```
+
+The number of new, unread messages will be in an integer "*count*" parameter.
+
 <br />
 
 <a name="faq107"></a>
@@ -2398,8 +2431,7 @@ because Google requires a [yearly security audit](https://support.google.com/clo
 
 OAuth for Yandex is supported via the quick setup wizard.
 
-Outlook, Live and Hotmail do not yet support OAuth for IMAP/SMTP connections, but
-"*[We are actively working on OAuth support for IMAP connections to O365 mailboxes. We will make a public announcement once the same is available.](https://stackoverflow.com/a/58072053)*" (September 24, 2019).
+OAuth for Office365 accounts is supported, but Microsoft does not offer OAuth for Outlook, Live and Hotmail accounts (yet?).
 
 OAuth access for Yahoo! was requested, but Yahoo! never responded to the request.
 OAuth for AOL [was deactivated](https://www.programmableweb.com/api/aol-open-auth) by AOL.
@@ -2509,12 +2541,12 @@ Checking *Remove tracking parameters* will remove all [UTM parameters](https://e
 <br />
 
 <a name="faq119"></a>
-**(119) Can you add colors to the unified inbox widget?**
+**~~(119) Can you add colors to the unified inbox widget?~~**
 
-The widget is designed to look good on most home/launcher screens by making it monochrome and by using a half transparent background.
-This way the widget will nicely blend in, while still being properly readable.
+~~The widget is designed to look good on most home/launcher screens by making it monochrome and by using a half transparent background.~~
+~~This way the widget will nicely blend in, while still being properly readable.~~
 
-Adding colors will cause problems with some backgrounds and will cause readability problems, which is why this won't be added.
+~~Adding colors will cause problems with some backgrounds and will cause readability problems, which is why this won't be added.~~
 
 Due to Android limitations it is not possible to dynamically set the opacity of the background and to have rounded corners at the same time.
 
@@ -2564,7 +2596,7 @@ FairEmail will wait 8, 16 and 32 seconds while keeping the device awake (=use ba
 If this fails, FairEmail will schedule an alarm to retry after 15, 30 and 60 minutes and let the device sleep (=no battery usage).
 
 Between connectivity changes there is a wait of 90 seconds to give the email server the opportunity to discover the old connection is broken.
-This is necessary because the internet connection of a mobile device is often lost abruptly and will prevent the problem described in [this FAQ](#user-content-faq23).
+This is necessary because the internet connection of a mobile device is often lost abruptly and to prevent the problem described in [this FAQ](#user-content-faq23).
 
 Note that [Android doze mode](https://developer.android.com/training/monitoring-device-state/doze-standby)
 does not allow to wake the device earlier than after 15 minutes.
@@ -2575,6 +2607,9 @@ Sending messages will be retried on connectivity changes only
 (reconnecting to the same network or connecting to another network)
 to prevent the email server from blocking the connection permanently.
 You can pull down the outbox to retry manually.
+
+Note that sending will not be retried in case of authentication problems and when the server rejected the message.
+In this case you can open/expand the message and use the undo icon to move the message to the drafts folder, possible change it and send it again.
 
 <br />
 
@@ -2589,7 +2624,7 @@ Reformatting and displaying such messages will take too long. You can try to use
 <a name="faq125"></a>
 **(125) What are the current experimental features?**
 
-* ~~Custom rendering of reformatted messages~~
+* ...
 
 <br />
 
@@ -2710,11 +2745,20 @@ that non-standard protocols, like Microsoft Exchange Web Services and Microsoft 
 <a name="faq134"></a>
 **(134) Can you add deleting local messages?**
 
-Since locally deleted messages would be downloaded again on the next sync it is not possible to permanently delete local messages.
+*POP3*
 
-As an alternative you can hide messages,
+In the account settings (Setup, step 1, Manage, tap account) you can enable *Leave deleted messages on server*.
+
+*IMAP*
+
+Since the IMAP protocol is meant to synchronize two ways,
+deleting a message from the device would result in fetching the message again when synchronizing again.
+
+However, FairEmail supports hiding messages,
 either via the three-dots menu in the action bar just above the message text
 or by multiple selecting messages in the message list.
+
+It is also possible to set the swipe left or right action to hide a message.
 
 <br />
 
@@ -2776,6 +2820,7 @@ The error *User is authenticated but not connected* might occur if:
 
 * The account password was changed: changing it in FairEmail too should fix the problem
 * Push messages are enabled for too many folders: see [this FAQ](#user-content-faq23) for more information and a workaround
+* An alias email address is being used as username instead of the primary email address
 * An incorrect login scheme is being used for a shared mailbox: the right scheme is *username@domain\SharedMailboxAlias*
 
 <br />
@@ -3001,10 +3046,59 @@ Some background: Gmail seems to have an additional message view for IMAP, which 
 <br />
 
 <a name="faq154"></a>
-**(154) Can you add favicons as contact photos?**
+**~~(154) Can you add favicons as contact photos?~~**
 
-Besides that a [favicon](https://en.wikipedia.org/wiki/Favicon) might be shared by many email addresses with the same domain name
-and therefore is not directly related to an email address, favicons can be used to track you.
+~~Besides that a [favicon](https://en.wikipedia.org/wiki/Favicon) might be shared by many email addresses with the same domain name~~
+~~and therefore is not directly related to an email address, favicons can be used to track you.~~
+
+<br />
+
+<a name="faq155"></a>
+**(155) What is a winmail.dat file?**
+
+A *winmail.dat* file is sent by an incorrectly configured Outlook client.
+It is a Microsoft specific file format ([TNEF](https://en.wikipedia.org/wiki/Transport_Neutral_Encapsulation_Format)) containing a message and possibly attachments.
+
+You can find some more information about this file [here](https://support.mozilla.org/en-US/kb/what-winmaildat-attachment).
+
+You can view it with for example the Android app [Letter Opener](https://play.google.com/store/apps/details?id=app.letteropener).
+
+<br />
+
+<a name="faq156"></a>
+**(156) How can I set up an Office365 account?**
+
+An Office365 account can be set up via the quick setup wizard and selecting *Office365 (OAuth)*.
+
+If the wizard ends with *AUTHENTICATE failed*, IMAP and/or SMTP might be disabled for the account.
+In this case you should ask the administrator to enable IMAP and SMTP.
+The procedure is documented [here](https://docs.microsoft.com/en-in/exchange/troubleshoot/configure-mailboxes/pop3-imap-owa-activesync-office-365).
+
+<br />
+
+<a name="faq157"></a>
+**(157) How can I set up an Free.fr account?**
+
+Veuillez [voir ici](https://free.fr/assistance/597.html) pour les instructions.
+
+**SMTP est désactivé par défaut**, veuillez [voir ici](https://free.fr/assistance/2406.html) comment il peut être activé.
+
+Veuillez [voir ici](http://jc.etiemble.free.fr/abc/index.php/trucs-astuces/configurer-smtp-free-fr) pour un guide détaillé.
+
+<br />
+
+<a name="faq158"></a>
+**(158) Which camera / audio recorder do you recommend?**
+
+To take photos and to record audio a camera and an audio recorder app are needed.
+The following apps are open source cameras and audio recorders:
+
+* [Open Camera](https://play.google.com/store/apps/details?id=net.sourceforge.opencamera) ([F-Droid](https://f-droid.org/en/packages/net.sourceforge.opencamera/))
+* [Audio Recorder](https://play.google.com/store/apps/details?id=com.github.axet.audiorecorder) ([F-Droid](https://f-droid.org/packages/com.github.axet.audiorecorder/))
+
+To record voice notes, etc, the audio recorder needs to support
+[MediaStore.Audio.Media.RECORD_SOUND_ACTION](https://developer.android.com/reference/android/provider/MediaStore.Audio.Media#RECORD_SOUND_ACTION).
+Oddly, most audio recorders seem not to support this standard Android action.
 
 <br />
 

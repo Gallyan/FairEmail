@@ -27,6 +27,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
+import android.database.sqlite.SQLiteFullException;
 import android.graphics.Point;
 import android.net.ConnectivityManager;
 import android.net.Network;
@@ -253,7 +254,7 @@ public class Log {
         setupBugsnag(context);
     }
 
-    private static void setupBugsnag(Context context) {
+    private static void setupBugsnag(final Context context) {
         // https://docs.bugsnag.com/platforms/android/sdk/
         com.bugsnag.android.Configuration config =
                 new com.bugsnag.android.Configuration("9d2d57476a0614974449a3ec33f2604a");
@@ -319,9 +320,10 @@ public class Log {
 
         String no_internet = context.getString(R.string.title_no_internet);
 
-        final String installer = context.getPackageManager().getInstallerPackageName(BuildConfig.APPLICATION_ID);
-        final boolean fingerprint = Helper.hasValidFingerprint(context);
-        final Boolean ignoringOptimizations = Helper.isIgnoringOptimizations(context);
+        String installer = context.getPackageManager().getInstallerPackageName(BuildConfig.APPLICATION_ID);
+        config.addMetadata("extra", "installer", installer == null ? "-" : installer);
+        config.addMetadata("extra", "installed", new Date(Helper.getInstallTime(context)).toString());
+        config.addMetadata("extra", "fingerprint", Helper.hasValidFingerprint(context));
 
         config.addOnSession(new OnSessionCallback() {
             @Override
@@ -343,11 +345,10 @@ public class Log {
                 boolean should = shouldNotify(ex);
 
                 if (should) {
-                    event.addMetadata("extra", "installer", installer == null ? "-" : installer);
-                    event.addMetadata("extra", "installed", new Date(Helper.getInstallTime(context)));
-                    event.addMetadata("extra", "fingerprint", fingerprint);
                     event.addMetadata("extra", "thread", Thread.currentThread().getName() + ":" + Thread.currentThread().getId());
                     event.addMetadata("extra", "free", Log.getFreeMemMb());
+
+                    Boolean ignoringOptimizations = Helper.isIgnoringOptimizations(context);
                     event.addMetadata("extra", "optimizing", (ignoringOptimizations != null && !ignoringOptimizations));
 
                     String theme = prefs.getString("theme", "light");
@@ -578,6 +579,29 @@ public class Log {
             */
             return false;
 
+        if (ex instanceof IllegalStateException &&
+                "Results have already been set".equals(ex.getMessage()))
+            /*
+                Play billing?
+                java.lang.IllegalStateException: Results have already been set
+                        at Gu.a(Unknown:8)
+                        at Fq.a(Unknown:29)
+                        at Fk.b(Unknown:17)
+                        at Fk.a(Unknown:12)
+                        at Fk.b(Unknown:5)
+                        at Ex.a(Unknown:3)
+                        at Ep.b(Unknown:9)
+                        at Ep.a(Unknown:76)
+                        at Ep.a(Unknown:16)
+                        at GH.a(Unknown:2)
+                        at Gz.a(Unknown:48)
+                        at GC.handleMessage(Unknown:6)
+                        at android.os.Handler.dispatchMessage(Handler.java:108)
+                        at android.os.Looper.loop(Looper.java:166)
+                        at android.os.HandlerThread.run(HandlerThread.java:65)
+             */
+            return false;
+
         if (ex instanceof IllegalArgumentException &&
                 ex.getCause() instanceof RemoteException)
             /*
@@ -623,6 +647,19 @@ public class Log {
                 at androidx.recyclerview.widget.DefaultItemAnimator$8.onAnimationEnd(SourceFile:391)
                 at android.view.ViewPropertyAnimator$AnimatorEventListener.onAnimationEnd(ViewPropertyAnimator.java:1122)
             */
+            return false;
+
+        if (ex instanceof IllegalMonitorStateException)
+            /*
+                java.lang.IllegalMonitorStateException
+                  at java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.signal(AbstractQueuedSynchronizer.java:1959)
+                  at java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1142)
+                  at java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:849)
+                  at java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1092)
+                  at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1152)
+                  at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:641)
+                  at java.lang.Thread.run(Thread.java:764)
+             */
             return false;
 
         if (ex instanceof RuntimeException &&
@@ -734,7 +771,54 @@ public class Log {
                 ex.getMessage().contains("finalize"))
             return false;
 
-        if (ex instanceof CursorWindowAllocationException)
+        if (ex instanceof CursorWindowAllocationException ||
+                "android.database.CursorWindowAllocationException".equals(ex.getClass().getName()))
+            /*
+                android.database.CursorWindowAllocationException: Could not allocate CursorWindow '/data/user/0/eu.faircode.email/no_backup/androidx.work.workdb' of size 2097152 due to error -12.
+                at android.database.CursorWindow.nativeCreate(Native Method)
+                at android.database.CursorWindow.<init>(CursorWindow.java:139)
+                at android.database.CursorWindow.<init>(CursorWindow.java:120)
+                at android.database.AbstractWindowedCursor.clearOrCreateWindow(AbstractWindowedCursor.java:202)
+                at android.database.sqlite.SQLiteCursor.fillWindow(SQLiteCursor.java:147)
+                at android.database.sqlite.SQLiteCursor.getCount(SQLiteCursor.java:140)
+                at android.database.AbstractCursor.moveToPosition(AbstractCursor.java:232)
+                at android.database.AbstractCursor.moveToNext(AbstractCursor.java:281)
+                at androidx.room.InvalidationTracker$1.checkUpdatedTable(SourceFile:417)
+                at androidx.room.InvalidationTracker$1.run(SourceFile:388)
+                at androidx.work.impl.utils.SerialExecutor$Task.run(SourceFile:91)
+             */
+            return false;
+
+        if (ex instanceof SQLiteFullException) // database or disk is full (code 13 SQLITE_FULL)
+            return false;
+
+        if ("android.util.SuperNotCalledException".equals(ex.getClass().getName()))
+            /*
+                android.util.SuperNotCalledException: Activity {eu.faircode.email/eu.faircode.email.ActivityView} did not call through to super.onResume()
+                  at android.app.Activity.performResume(Activity.java:7304)
+                  at android.app.ActivityThread.performNewIntents(ActivityThread.java:3165)
+                  at android.app.ActivityThread.handleNewIntent(ActivityThread.java:3180)
+                  at android.app.servertransaction.NewIntentItem.execute(NewIntentItem.java:49)
+             */
+            return false;
+
+        if ("android.view.WindowManager$InvalidDisplayException".equals(ex.getClass().getName()))
+            /*
+                android.view.WindowManager$InvalidDisplayException: Unable to add window android.view.ViewRootImpl$W@d7b5a0b -- the specified display can not be found
+                  at android.view.ViewRootImpl.setView(ViewRootImpl.java:854)
+                  at android.view.WindowManagerGlobal.addView(WindowManagerGlobal.java:356)
+                  at android.view.WindowManagerImpl.addView(WindowManagerImpl.java:93)
+                  at android.widget.PopupWindow.invokePopup(PopupWindow.java:1492)
+                  at android.widget.PopupWindow.showAsDropDown(PopupWindow.java:1342)
+                  at androidx.appcompat.widget.AppCompatPopupWindow.showAsDropDown(SourceFile:77)
+                  at androidx.core.widget.PopupWindowCompat.showAsDropDown(SourceFile:69)
+                  at androidx.appcompat.widget.ListPopupWindow.show(SourceFile:754)
+                  at androidx.appcompat.view.menu.CascadingMenuPopup.showMenu(SourceFile:486)
+                  at androidx.appcompat.view.menu.CascadingMenuPopup.show(SourceFile:265)
+                  at androidx.appcompat.view.menu.MenuPopupHelper.showPopup(SourceFile:290)
+                  at androidx.appcompat.view.menu.MenuPopupHelper.tryShow(SourceFile:177)
+                  at androidx.appcompat.widget.ActionMenuPresenter$OpenOverflowRunnable.run(SourceFile:792)
+               */
             return false;
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)
@@ -1108,16 +1192,24 @@ public class Log {
         File file = attachment.getFile(context);
         try (OutputStream os = new BufferedOutputStream(new FileOutputStream(file))) {
             List<EntityAccount> accounts = db.account().getAccounts();
+            size += write(os, "accounts=" + accounts.size() + "\r\n");
             for (EntityAccount account : accounts)
                 try {
                     JSONObject jaccount = account.toJSON();
                     jaccount.put("state", account.state);
                     jaccount.put("warning", account.warning);
                     jaccount.put("error", account.error);
+
                     if (account.last_connected != null)
                         jaccount.put("last_connected", new Date(account.last_connected).toString());
+
+                    jaccount.put("keep_alive_ok", account.keep_alive_ok);
+                    jaccount.put("keep_alive_failed", account.keep_alive_failed);
+                    jaccount.put("keep_alive_succeeded", account.keep_alive_succeeded);
+
                     jaccount.remove("user");
                     jaccount.remove("password");
+
                     size += write(os, "==========\r\n");
                     size += write(os, jaccount.toString(2) + "\r\n");
 

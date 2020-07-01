@@ -182,7 +182,7 @@ public class ActivityEML extends ActivityBase {
                     if (html != null) {
                         Document parsed = JsoupEx.parse(html);
                         Document document = HtmlHelper.sanitizeView(context, parsed, false);
-                        result.body = HtmlHelper.fromDocument(context, document);
+                        result.body = HtmlHelper.fromDocument(context, document, true, null, null);
                     }
 
                     return result;
@@ -252,11 +252,10 @@ public class ActivityEML extends ActivityBase {
                                 if (!TextUtils.isEmpty(apart.attachment.name))
                                     create.putExtra(Intent.EXTRA_TITLE, apart.attachment.name);
                                 Helper.openAdvanced(create);
-                                if (create.resolveActivity(getPackageManager()) == null)
+                                if (create.resolveActivity(getPackageManager()) == null) // system whitelisted
                                     ToastEx.makeText(ActivityEML.this, R.string.title_no_saf, Toast.LENGTH_LONG).show();
                                 else
                                     startActivityForResult(Helper.getChooser(ActivityEML.this, create), REQUEST_ATTACHMENT);
-
                             }
                         });
                 rvAttachment.setAdapter(adapter);
@@ -310,6 +309,8 @@ public class ActivityEML extends ActivityBase {
                 InputStream is;
                 try {
                     pfd = getContentResolver().openFileDescriptor(uri, "w");
+                    if (pfd == null)
+                        throw new FileNotFoundException(uri.toString());
                     os = new FileOutputStream(pfd.getFileDescriptor());
                     is = apart.part.getInputStream();
 

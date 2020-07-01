@@ -73,6 +73,8 @@ import javax.mail.event.StoreListener;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
@@ -83,6 +85,7 @@ public class EmailService implements AutoCloseable {
     private Context context;
     private String protocol;
     private boolean insecure;
+    private int purpose;
     private boolean harden;
     private boolean useip;
     private String ehlo;
@@ -110,10 +113,12 @@ public class EmailService implements AutoCloseable {
 
     private static final int APPEND_BUFFER_SIZE = 4 * 1024 * 1024; // bytes
 
+    // https://developer.android.com/reference/javax/net/ssl/SSLSocket.html#protocols
     private static final List<String> SSL_PROTOCOL_BLACKLIST = Collections.unmodifiableList(Arrays.asList(
             "SSLv2", "SSLv3", "TLSv1", "TLSv1.1"
     ));
 
+    // https://developer.android.com/reference/javax/net/ssl/SSLSocket.html#cipher-suites
     private static final Pattern SSL_CIPHER_BLACKLIST =
             Pattern.compile(".*(_DES|DH_|DSS|EXPORT|MD5|NULL|RC4|TLS_FALLBACK_SCSV).*");
 
@@ -132,6 +137,7 @@ public class EmailService implements AutoCloseable {
         this.context = context.getApplicationContext();
         this.protocol = protocol;
         this.insecure = insecure;
+        this.purpose = purpose;
         this.debug = debug;
 
         properties = MessageHelper.getSessionProperties();
@@ -139,29 +145,16 @@ public class EmailService implements AutoCloseable {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
         this.harden = prefs.getBoolean("ssl_harden", false);
 
-        boolean socks_enabled = prefs.getBoolean("socks_enabled", false);
-        String socks_proxy = prefs.getString("socks_proxy", "localhost:9050");
-
-        // SOCKS proxy
-        if (socks_enabled) {
-            String[] address = socks_proxy.split(":");
-            String host = (address.length > 0 ? address[0] : null);
-            String port = (address.length > 1 ? address[1] : null);
-            if (TextUtils.isEmpty(host))
-                host = "localhost";
-            if (TextUtils.isEmpty(port))
-                port = "9050";
-            properties.put("mail." + protocol + ".socks.host", host);
-            properties.put("mail." + protocol + ".socks.port", port);
-            Log.i("Using SOCKS proxy=" + host + ":" + port);
-        }
+        boolean auth_sasl = prefs.getBoolean("auth_sasl", true);
 
         properties.put("mail.event.scope", "folder");
         properties.put("mail.event.executor", executor);
 
         properties.put("mail." + protocol + ".sasl.enable", "true");
-        properties.put("mail." + protocol + ".sasl.mechanisms", "CRAM-MD5");
-        properties.put("mail." + protocol + ".sasl.realm", realm == null ? "" : realm);
+        if (auth_sasl) {
+            properties.put("mail." + protocol + ".sasl.mechanisms", "CRAM-MD5");
+            properties.put("mail." + protocol + ".sasl.realm", realm == null ? "" : realm);
+        }
         properties.put("mail." + protocol + ".auth.ntlm.domain", realm == null ? "" : realm);
 
         // writetimeout: one thread overhead
@@ -312,10 +305,10 @@ public class EmailService implements AutoCloseable {
 
             if (auth == AUTH_TYPE_OAUTH) {
                 AuthState authState = OAuthRefresh(context, provider, password);
-                connect(host, port, user, authState.getAccessToken(), factory);
+                connect(host, port, auth, user, authState.getAccessToken(), factory);
                 return authState.jsonSerializeString();
             } else {
-                connect(host, port, user, password, factory);
+                connect(host, port, auth, user, password, factory);
                 return null;
             }
         } catch (AuthenticationFailedException ex) {
@@ -333,7 +326,7 @@ public class EmailService implements AutoCloseable {
                             if (token == null)
                                 throw new AuthenticatorException("No token on refresh for " + user);
 
-                            connect(host, port, user, token, factory);
+                            connect(host, port, auth, user, token, factory);
                             return token;
                         }
 
@@ -344,7 +337,7 @@ public class EmailService implements AutoCloseable {
                 }
             else if (auth == AUTH_TYPE_OAUTH) {
                 AuthState authState = OAuthRefresh(context, provider, password);
-                connect(host, port, user, authState.getAccessToken(), factory);
+                connect(host, port, auth, user, authState.getAccessToken(), factory);
                 return authState.jsonSerializeString();
             } else
                 throw ex;
@@ -361,17 +354,34 @@ public class EmailService implements AutoCloseable {
             } else
                 throw ex;
         } catch (MessagingException ex) {
-            if (port == 995 && !("pop3".equals(protocol) || "pop3s".equals(protocol)))
-                throw new MessagingException(context.getString(R.string.title_service_port), ex);
-            else
+            if (purpose == PURPOSE_CHECK) {
+                if (port == 995 && !("pop3".equals(protocol) || "pop3s".equals(protocol)))
+                    throw new MessagingException(context.getString(R.string.title_service_port), ex);
+                else if (ex.getMessage() != null &&
+                        ex.getMessage().contains("Got bad greeting"))
+                    throw new MessagingException(context.getString(R.string.title_service_protocol), ex);
+                else if (ex.getCause() instanceof SSLException &&
+                        ex.getCause().getMessage() != null &&
+                        ex.getCause().getMessage().contains("Unable to parse TLS packet header"))
+                    throw new MessagingException(context.getString(R.string.title_service_protocol), ex);
+                else if (ex.getCause() instanceof SSLHandshakeException)
+                    throw new MessagingException(context.getString(R.string.title_service_protocol), ex);
+                else
+                    throw ex;
+            } else
                 throw ex;
         }
     }
 
     private void connect(
-            String host, int port, String user, String password,
+            String host, int port, int auth,
+            String user, String password,
             SSLSocketFactoryService factory) throws MessagingException {
         InetAddress main = null;
+        boolean require_id = (purpose == PURPOSE_CHECK &&
+                auth == AUTH_TYPE_OAUTH &&
+                "outlook.office365.com".equals(host));
+        Log.i("Require ID=" + require_id);
         try {
             //if (BuildConfig.DEBUG)
             //    throw new MailConnectException(
@@ -379,7 +389,7 @@ public class EmailService implements AutoCloseable {
 
             main = InetAddress.getByName(host);
             EntityLog.log(context, "Connecting to " + main);
-            _connect(main, port, user, password, factory);
+            _connect(main, port, require_id, user, password, factory);
         } catch (UnknownHostException ex) {
             throw new MessagingException(ex.getMessage(), ex);
         } catch (MessagingException ex) {
@@ -444,7 +454,7 @@ public class EmailService implements AutoCloseable {
 
                         try {
                             EntityLog.log(context, "Falling back to " + iaddr);
-                            _connect(iaddr, port, user, password, factory);
+                            _connect(iaddr, port, require_id, user, password, factory);
                             return;
                         } catch (MessagingException ex1) {
                             ex = ex1;
@@ -462,7 +472,8 @@ public class EmailService implements AutoCloseable {
     }
 
     private void _connect(
-            InetAddress address, int port, String user, String password,
+            InetAddress address, int port, boolean require_id,
+            String user, String password,
             SSLSocketFactoryService factory) throws MessagingException {
         isession = Session.getInstance(properties, null);
         isession.setDebug(debug);
@@ -497,6 +508,9 @@ public class EmailService implements AutoCloseable {
                     }
                 } catch (MessagingException ex) {
                     Log.w(ex);
+                    // Check for 'User is authenticated but not connected'
+                    if (require_id)
+                        throw ex;
                 }
 
         } else if ("smtp".equals(protocol) || "smtps".equals(protocol)) {

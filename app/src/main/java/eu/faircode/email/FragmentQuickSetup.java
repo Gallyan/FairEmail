@@ -309,7 +309,9 @@ public class FragmentQuickSetup extends FragmentBase {
                                     null, imap_fingerprint);
                         } else
                             throw ex;
-                    } catch (AuthenticationFailedException ex) {
+                    } catch (Throwable ex) {
+                        // Why not AuthenticationFailedException?
+                        // Some providers refuse connection with an invalid username
                         if (!user.equals(username)) {
                             Log.w(ex);
                             user = username;
@@ -489,7 +491,7 @@ public class FragmentQuickSetup extends FragmentBase {
                     btnSupport.setVisibility(View.VISIBLE);
 
                     if (args.containsKey("documentation")) {
-                        tvInstructions.setText(HtmlHelper.fromHtml(args.getString("documentation")));
+                        tvInstructions.setText(HtmlHelper.fromHtml(args.getString("documentation"), true, getContext()));
                         tvInstructions.setVisibility(View.VISIBLE);
                     }
 

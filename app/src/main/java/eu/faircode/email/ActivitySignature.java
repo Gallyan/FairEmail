@@ -37,6 +37,7 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.TextView;
 
@@ -45,8 +46,10 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.snackbar.Snackbar;
 
 public class ActivitySignature extends ActivityBase {
+    private ViewGroup view;
     private EditTextCompose etText;
     private BottomNavigationView style_bar;
     private BottomNavigationView bottom_navigation;
@@ -64,7 +67,10 @@ public class ActivitySignature extends ActivityBase {
             raw = savedInstanceState.getBoolean("fair:raw");
 
         getSupportActionBar().setSubtitle(getString(R.string.title_edit_signature));
-        setContentView(R.layout.activity_signature);
+
+        LayoutInflater inflater = LayoutInflater.from(this);
+        view = (ViewGroup) inflater.inflate(R.layout.activity_signature, null, false);
+        setContentView(view);
 
         etText = findViewById(R.id.etText);
         style_bar = findViewById(R.id.style_bar);
@@ -183,12 +189,12 @@ public class ActivitySignature extends ActivityBase {
         else if (raw)
             etText.setText(html);
         else
-            etText.setText(HtmlHelper.fromHtml(html, new Html.ImageGetter() {
+            etText.setText(HtmlHelper.fromHtml(html, false, new Html.ImageGetter() {
                 @Override
                 public Drawable getDrawable(String source) {
                     return ImageHelper.decodeImage(ActivitySignature.this, -1, source, true, 0, etText);
                 }
-            }, null));
+            }, null, this));
         dirty = false;
     }
 
@@ -201,7 +207,9 @@ public class ActivitySignature extends ActivityBase {
 
     private void save() {
         etText.clearComposingText();
-        String html = (raw ? etText.getText().toString() : HtmlHelper.toHtml(etText.getText()));
+        String html = (raw
+                ? etText.getText().toString()
+                : HtmlHelper.toHtml(etText.getText(), this));
         Intent result = new Intent();
         result.putExtra("html", html);
         setResult(RESULT_OK, result);
@@ -212,7 +220,9 @@ public class ActivitySignature extends ActivityBase {
         this.raw = raw;
 
         if (!raw || dirty) {
-            String html = (raw ? HtmlHelper.toHtml(etText.getText()) : etText.getText().toString());
+            String html = (raw
+                    ? HtmlHelper.toHtml(etText.getText(), this)
+                    : etText.getText().toString());
             getIntent().putExtra("html", html);
         }
 
@@ -262,7 +272,7 @@ public class ActivitySignature extends ActivityBase {
                         public void onClick(DialogInterface dialog, int which) {
                             String link = etLink.getText().toString();
                             etText.setSelection(start, end);
-                            StyleHelper.apply(R.id.menu_link, etText, link);
+                            StyleHelper.apply(R.id.menu_link, null, etText, link);
                         }
                     })
                     .setNegativeButton(android.R.string.cancel, null)
@@ -270,7 +280,7 @@ public class ActivitySignature extends ActivityBase {
 
             return true;
         } else
-            return StyleHelper.apply(action, etText);
+            return StyleHelper.apply(action, findViewById(action), etText);
     }
 
     private void onImageSelected(Uri uri) {
@@ -290,6 +300,15 @@ public class ActivitySignature extends ActivityBase {
                 etText.setText(ssb);
                 etText.setSelection(start + 2);
             }
+        } catch (SecurityException ex) {
+            Snackbar sb = Snackbar.make(view, R.string.title_no_stream, Snackbar.LENGTH_INDEFINITE);
+            sb.setAction(R.string.title_info, new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Helper.viewFAQ(ActivitySignature.this, 49);
+                }
+            });
+            sb.show();
         } catch (Throwable ex) {
             Log.unexpectedError(getSupportFragmentManager(), ex);
         }

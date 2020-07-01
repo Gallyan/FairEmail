@@ -19,27 +19,20 @@ package eu.faircode.email;
     Copyright 2018-2020 by Marcel Bokhorst (M66B)
 */
 
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
-import android.graphics.drawable.Drawable;
-import android.net.Uri;
 import android.os.Bundle;
-import android.text.TextUtils;
-import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.webkit.MimeTypeMap;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.LifecycleObserver;
@@ -51,11 +44,12 @@ import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListUpdateCallback;
 import androidx.recyclerview.widget.RecyclerView;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+
+import javax.mail.Part;
 
 public class AdapterAttachment extends RecyclerView.Adapter<AdapterAttachment.ViewHolder> {
     private Fragment parentFragment;
@@ -69,10 +63,11 @@ public class AdapterAttachment extends RecyclerView.Adapter<AdapterAttachment.Vi
 
     private List<EntityAttachment> items = new ArrayList<>();
 
-    public class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener, View.OnLongClickListener {
+    public class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
         private View view;
         private ImageButton ibDelete;
         private ImageView ivType;
+        private ImageView ivDisposition;
         private TextView tvName;
         private TextView tvSize;
         private ImageView ivStatus;
@@ -92,20 +87,19 @@ public class AdapterAttachment extends RecyclerView.Adapter<AdapterAttachment.Vi
             ivStatus = itemView.findViewById(R.id.ivStatus);
             ibSave = itemView.findViewById(R.id.ibSave);
             tvType = itemView.findViewById(R.id.tvType);
+            ivDisposition = itemView.findViewById(R.id.ivDisposition);
             tvError = itemView.findViewById(R.id.tvError);
             progressbar = itemView.findViewById(R.id.progressbar);
         }
 
         private void wire() {
             view.setOnClickListener(this);
-            view.setOnLongClickListener(this);
             ibDelete.setOnClickListener(this);
             ibSave.setOnClickListener(this);
         }
 
         private void unwire() {
             view.setOnClickListener(null);
-            view.setOnLongClickListener(null);
             ibDelete.setOnClickListener(null);
             ibSave.setOnClickListener(null);
         }
@@ -113,9 +107,23 @@ public class AdapterAttachment extends RecyclerView.Adapter<AdapterAttachment.Vi
         private void bindTo(EntityAttachment attachment) {
             view.setAlpha(!attachment.isAttachment() ? Helper.LOW_LIGHT : 1.0f);
 
-            ibDelete.setVisibility(readonly ? View.GONE :
-                    attachment.isInline() && attachment.error == null ? View.INVISIBLE : View.VISIBLE);
-            ivType.setImageDrawable(null);
+            ibDelete.setVisibility(readonly ? View.GONE : View.VISIBLE);
+
+            int resid = 0;
+            String extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(attachment.getMimeType());
+            if (extension != null)
+                resid = context.getResources().getIdentifier("file_" + extension, "drawable", context.getPackageName());
+            if (resid == 0)
+                ivType.setImageDrawable(null);
+            else
+                ivType.setImageResource(resid);
+
+            ivDisposition.setImageLevel(Part.INLINE.equals(attachment.disposition) ? 1 : 0);
+            ivDisposition.setVisibility(
+                    Part.ATTACHMENT.equals(attachment.disposition) ||
+                            Part.INLINE.equals(attachment.disposition)
+                            ? View.VISIBLE : View.INVISIBLE);
+
             tvName.setText(attachment.name);
 
             if (attachment.size != null)
@@ -142,9 +150,9 @@ public class AdapterAttachment extends RecyclerView.Adapter<AdapterAttachment.Vi
 
             StringBuilder sb = new StringBuilder();
             sb.append(attachment.type);
-            if (attachment.disposition != null)
-                sb.append(' ').append(attachment.disposition);
             if (debug || BuildConfig.DEBUG) {
+                if (attachment.disposition != null)
+                    sb.append(' ').append(attachment.disposition);
                 if (attachment.cid != null)
                     sb.append(' ').append(attachment.cid);
                 if (attachment.isEncryption())
@@ -154,55 +162,6 @@ public class AdapterAttachment extends RecyclerView.Adapter<AdapterAttachment.Vi
 
             tvError.setText(attachment.error);
             tvError.setVisibility(attachment.error == null ? View.GONE : View.VISIBLE);
-
-            Bundle args = new Bundle();
-            args.putLong("id", attachment.id);
-            args.putSerializable("file", attachment.getFile(context));
-            args.putString("type", attachment.getMimeType());
-
-            new SimpleTask<Drawable>() {
-                @Override
-                protected Drawable onExecute(Context context, Bundle args) throws Throwable {
-                    File file = (File) args.getSerializable("file");
-                    String type = args.getString("type");
-
-                    Uri uri = FileProvider.getUriForFile(context, BuildConfig.APPLICATION_ID, file);
-
-                    Intent intent = new Intent(Intent.ACTION_VIEW);
-                    intent.setDataAndTypeAndNormalize(uri, type);
-
-                    PackageManager pm = context.getPackageManager();
-
-                    ComponentName component = intent.resolveActivity(pm);
-                    if (component == null)
-                        return null;
-
-                    return pm.getApplicationIcon(component.getPackageName());
-                }
-
-                @Override
-                protected void onExecuted(Bundle args, Drawable icon) {
-                    long id = args.getLong("id");
-
-                    int pos = getAdapterPosition();
-                    if (pos == RecyclerView.NO_POSITION)
-                        return;
-
-                    EntityAttachment attachment = items.get(pos);
-                    if (attachment == null || !attachment.id.equals(id))
-                        return;
-
-                    if (icon == null)
-                        ivType.setImageResource(R.drawable.baseline_attachment_24);
-                    else
-                        ivType.setImageDrawable(icon);
-                }
-
-                @Override
-                protected void onException(Bundle args, Throwable ex) {
-                    Log.unexpectedError(parentFragment.getParentFragmentManager(), ex);
-                }
-            }.execute(context, owner, args, "attachment:icon");
         }
 
         @Override
@@ -227,25 +186,6 @@ public class AdapterAttachment extends RecyclerView.Adapter<AdapterAttachment.Vi
                         onDownload(attachment);
                 }
             }
-        }
-
-        @Override
-        public boolean onLongClick(View v) {
-            int pos = getAdapterPosition();
-            if (pos == RecyclerView.NO_POSITION)
-                return false;
-
-            EntityAttachment attachment = items.get(pos);
-            if (attachment == null)
-                return false;
-
-            if (TextUtils.isEmpty(attachment.name))
-                return false;
-
-            Toast toast = ToastEx.makeText(context, attachment.name, Toast.LENGTH_LONG);
-            toast.setGravity(Gravity.CENTER, 0, 0);
-            toast.show();
-            return true;
         }
 
         private void onDelete(final EntityAttachment attachment) {

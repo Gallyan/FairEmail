@@ -22,6 +22,7 @@ package eu.faircode.email;
 import android.annotation.TargetApi;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -39,8 +40,10 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.widget.PopupMenu;
@@ -85,6 +88,7 @@ public class AdapterAccount extends RecyclerView.Adapter<AdapterAccount.ViewHold
         private ImageView ivNotify;
         private TextView tvName;
         private ImageView ivSync;
+        private ImageButton ibInbox;
         private TextView tvUser;
         private ImageView ivState;
         private TextView tvHost;
@@ -105,6 +109,7 @@ public class AdapterAccount extends RecyclerView.Adapter<AdapterAccount.ViewHold
             view = itemView.findViewById(R.id.clItem);
             vwColor = itemView.findViewById(R.id.vwColor);
             ivSync = itemView.findViewById(R.id.ivSync);
+            ibInbox = itemView.findViewById(R.id.ibInbox);
             ivOAuth = itemView.findViewById(R.id.ivOAuth);
             ivPrimary = itemView.findViewById(R.id.ivPrimary);
             ivNotify = itemView.findViewById(R.id.ivNotify);
@@ -125,12 +130,14 @@ public class AdapterAccount extends RecyclerView.Adapter<AdapterAccount.ViewHold
         private void wire() {
             view.setOnClickListener(this);
             view.setOnLongClickListener(this);
+            ibInbox.setOnClickListener(this);
             btnHelp.setOnClickListener(this);
         }
 
         private void unwire() {
             view.setOnClickListener(null);
             view.setOnLongClickListener(null);
+            ibInbox.setOnClickListener(null);
             btnHelp.setOnClickListener(null);
         }
 
@@ -199,6 +206,7 @@ public class AdapterAccount extends RecyclerView.Adapter<AdapterAccount.ViewHold
             tvError.setVisibility(account.error == null ? View.GONE : View.VISIBLE);
             btnHelp.setVisibility(account.error == null ? View.GONE : View.VISIBLE);
 
+            ibInbox.setVisibility(settings ? View.GONE : View.VISIBLE);
             grpSettings.setVisibility(settings ? View.VISIBLE : View.GONE);
         }
 
@@ -215,11 +223,45 @@ public class AdapterAccount extends RecyclerView.Adapter<AdapterAccount.ViewHold
                 if (account.tbd != null)
                     return;
 
-                LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(context);
-                lbm.sendBroadcast(
-                        new Intent(settings ? ActivitySetup.ACTION_EDIT_ACCOUNT : ActivityView.ACTION_VIEW_FOLDERS)
-                                .putExtra("id", account.id)
-                                .putExtra("protocol", account.protocol));
+                if (view.getId() == R.id.ibInbox) {
+                    Bundle args = new Bundle();
+                    args.putLong("id", account.id);
+
+                    new SimpleTask<EntityFolder>() {
+                        @Override
+                        protected EntityFolder onExecute(Context context, Bundle args) {
+                            long id = args.getLong("id");
+
+                            DB db = DB.getInstance(context);
+                            return db.folder().getFolderByType(id, EntityFolder.INBOX);
+                        }
+
+                        @Override
+                        protected void onExecuted(Bundle args, EntityFolder inbox) {
+                            if (inbox == null)
+                                return;
+
+                            LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(context);
+                            lbm.sendBroadcast(
+                                    new Intent(ActivityView.ACTION_VIEW_MESSAGES)
+                                            .putExtra("account", inbox.account)
+                                            .putExtra("folder", inbox.id)
+                                            .putExtra("type", inbox.type));
+
+                        }
+
+                        @Override
+                        protected void onException(Bundle args, Throwable ex) {
+                            Log.unexpectedError(parentFragment.getParentFragmentManager(), ex);
+                        }
+                    }.execute(context, owner, args, "account:inbox");
+                } else {
+                    LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(context);
+                    lbm.sendBroadcast(
+                            new Intent(settings ? ActivitySetup.ACTION_EDIT_ACCOUNT : ActivityView.ACTION_VIEW_FOLDERS)
+                                    .putExtra("id", account.id)
+                                    .putExtra("protocol", account.protocol));
+                }
             }
         }
 
@@ -354,7 +396,12 @@ public class AdapterAccount extends RecyclerView.Adapter<AdapterAccount.ViewHold
                     Intent intent = new Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
                             .putExtra(Settings.EXTRA_APP_PACKAGE, context.getPackageName())
                             .putExtra(Settings.EXTRA_CHANNEL_ID, EntityAccount.getNotificationChannelId(account.id));
-                    context.startActivity(intent);
+                    try {
+                        context.startActivity(intent);
+                    } catch (ActivityNotFoundException ex) {
+                        Log.w(ex);
+                        ToastEx.makeText(context, context.getString(R.string.title_no_viewer, intent), Toast.LENGTH_LONG).show();
+                    }
                 }
 
                 private void onActionCopy() {

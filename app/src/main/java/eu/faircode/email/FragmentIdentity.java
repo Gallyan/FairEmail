@@ -21,7 +21,6 @@ package eu.faircode.email;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
-import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
@@ -106,6 +105,7 @@ public class FragmentIdentity extends FragmentBase {
 
     private CheckBox cbSynchronize;
     private CheckBox cbPrimary;
+    private CheckBox cbSelf;
 
     private CheckBox cbSenderExtra;
     private TextView etSenderExtra;
@@ -197,6 +197,7 @@ public class FragmentIdentity extends FragmentBase {
 
         cbSynchronize = view.findViewById(R.id.cbSynchronize);
         cbPrimary = view.findViewById(R.id.cbPrimary);
+        cbSelf = view.findViewById(R.id.cbSelf);
 
         cbSenderExtra = view.findViewById(R.id.cbSenderExtra);
         etSenderExtra = view.findViewById(R.id.etSenderExtra);
@@ -602,6 +603,7 @@ public class FragmentIdentity extends FragmentBase {
         args.putString("signature", signature);
         args.putBoolean("synchronize", cbSynchronize.isChecked());
         args.putBoolean("primary", cbPrimary.isChecked());
+        args.putBoolean("self", cbSelf.isChecked());
 
         args.putBoolean("should", should);
 
@@ -652,6 +654,7 @@ public class FragmentIdentity extends FragmentBase {
                 String ehlo = args.getString("ehlo");
                 boolean synchronize = args.getBoolean("synchronize");
                 boolean primary = args.getBoolean("primary");
+                boolean self = args.getBoolean("self");
 
                 boolean sender_extra = args.getBoolean("sender_extra");
                 String sender_extra_regex = args.getString("sender_extra_regex");
@@ -782,6 +785,8 @@ public class FragmentIdentity extends FragmentBase {
                         return true;
                     if (!Objects.equals(identity.primary, (identity.synchronize && primary)))
                         return true;
+                    if (!Objects.equals(identity.self, self))
+                        return true;
                     if (!Objects.equals(identity.sender_extra, sender_extra))
                         return true;
                     if (!Objects.equals(identity.sender_extra_regex, sender_extra_regex))
@@ -802,14 +807,17 @@ public class FragmentIdentity extends FragmentBase {
 
                 boolean check = (synchronize && (identity == null ||
                         !identity.synchronize || identity.error != null ||
-                        !identity.insecure.equals(insecure) ||
-                        !host.equals(identity.host) || Integer.parseInt(port) != identity.port ||
-                        !user.equals(identity.user) || !password.equals(identity.password) ||
-                        !Objects.equals(identity.certificate_alias, certificate) ||
+                        !host.equals(identity.host) ||
+                        starttls != identity.starttls ||
+                        insecure != identity.insecure ||
+                        Integer.parseInt(port) != identity.port ||
+                        !user.equals(identity.user) ||
+                        !password.equals(identity.password) ||
+                        !Objects.equals(certificate, identity.certificate_alias) ||
                         !Objects.equals(realm, identityRealm) ||
-                        !Objects.equals(identity.fingerprint, fingerprint) ||
+                        !Objects.equals(fingerprint, identity.fingerprint) ||
                         use_ip != identity.use_ip ||
-                        !Objects.equals(identity.ehlo, ehlo)));
+                        !Objects.equals(ehlo, identity.ehlo)));
                 Log.i("Identity check=" + check);
 
                 Long last_connected = null;
@@ -867,6 +875,7 @@ public class FragmentIdentity extends FragmentBase {
                     identity.ehlo = ehlo;
                     identity.synchronize = synchronize;
                     identity.primary = (identity.synchronize && primary);
+                    identity.self = self;
 
                     identity.sender_extra = sender_extra;
                     identity.sender_extra_regex = sender_extra_regex;
@@ -893,11 +902,6 @@ public class FragmentIdentity extends FragmentBase {
                     db.setTransactionSuccessful();
                 } finally {
                     db.endTransaction();
-                }
-
-                if (!synchronize) {
-                    NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-                    nm.cancel("send:" + identity.id, 1);
                 }
 
                 return false;
@@ -998,7 +1002,7 @@ public class FragmentIdentity extends FragmentBase {
         btnSupport.setVisibility(View.VISIBLE);
 
         if (provider != null && provider.documentation != null) {
-            tvInstructions.setText(HtmlHelper.fromHtml(provider.documentation.toString()));
+            tvInstructions.setText(HtmlHelper.fromHtml(provider.documentation.toString(), true, getContext()));
             tvInstructions.setVisibility(View.VISIBLE);
         }
 
@@ -1076,6 +1080,7 @@ public class FragmentIdentity extends FragmentBase {
                     etEhlo.setText(identity == null ? null : identity.ehlo);
                     cbSynchronize.setChecked(identity == null ? true : identity.synchronize);
                     cbPrimary.setChecked(identity == null ? true : identity.primary);
+                    cbSelf.setChecked(identity == null ? true : identity.self);
 
                     cbSenderExtra.setChecked(identity != null && identity.sender_extra);
                     etSenderExtra.setText(identity == null ? null : identity.sender_extra_regex);

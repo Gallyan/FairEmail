@@ -27,8 +27,11 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.database.sqlite.SQLiteDatabaseCorruptException;
 import android.graphics.Paint;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -70,17 +73,19 @@ public class FragmentOptionsMisc extends FragmentBase implements SharedPreferenc
     private TextView tvFtsPro;
     private SwitchCompat swEnglish;
     private SwitchCompat swWatchdog;
-    private SwitchCompat swOptimize;
     private SwitchCompat swUpdates;
     private SwitchCompat swExperiments;
     private TextView tvExperimentsHint;
+    private SwitchCompat swQueries;
     private SwitchCompat swCrashReports;
     private TextView tvUuid;
     private SwitchCompat swDebug;
+    private SwitchCompat swAuthSasl;
     private Button btnReset;
     private SwitchCompat swCleanupAttachments;
     private Button btnCleanup;
     private TextView tvLastCleanup;
+    private Button btnApp;
     private Button btnMore;
 
     private TextView tvProcessors;
@@ -93,8 +98,8 @@ public class FragmentOptionsMisc extends FragmentBase implements SharedPreferenc
     private Group grpDebug;
 
     private final static String[] RESET_OPTIONS = new String[]{
-            "shortcuts", "fts", "english", "watchdog", "auto_optimize", "updates",
-            "experiments", "crash_reports", "debug", "cleanup_attachments"
+            "shortcuts", "fts", "english", "watchdog", "updates",
+            "experiments", "query_threads", "crash_reports", "debug", "auth_sasl", "cleanup_attachments"
     };
 
     private final static String[] RESET_QUESTIONS = new String[]{
@@ -124,17 +129,19 @@ public class FragmentOptionsMisc extends FragmentBase implements SharedPreferenc
         tvFtsPro = view.findViewById(R.id.tvFtsPro);
         swEnglish = view.findViewById(R.id.swEnglish);
         swWatchdog = view.findViewById(R.id.swWatchdog);
-        swOptimize = view.findViewById(R.id.swOptimize);
         swUpdates = view.findViewById(R.id.swUpdates);
         swExperiments = view.findViewById(R.id.swExperiments);
         tvExperimentsHint = view.findViewById(R.id.tvExperimentsHint);
+        swQueries = view.findViewById(R.id.swQueries);
         swCrashReports = view.findViewById(R.id.swCrashReports);
         tvUuid = view.findViewById(R.id.tvUuid);
         swDebug = view.findViewById(R.id.swDebug);
+        swAuthSasl = view.findViewById(R.id.swAuthSasl);
         btnReset = view.findViewById(R.id.btnReset);
         swCleanupAttachments = view.findViewById(R.id.swCleanupAttachments);
         btnCleanup = view.findViewById(R.id.btnCleanup);
         tvLastCleanup = view.findViewById(R.id.tvLastCleanup);
+        btnApp = view.findViewById(R.id.btnApp);
         btnMore = view.findViewById(R.id.btnMore);
 
         tvProcessors = view.findViewById(R.id.tvProcessors);
@@ -186,9 +193,14 @@ public class FragmentOptionsMisc extends FragmentBase implements SharedPreferenc
                     new SimpleTask<Void>() {
                         @Override
                         protected Void onExecute(Context context, Bundle args) {
-                            SQLiteDatabase sdb = FtsDbHelper.getInstance(context);
-                            FtsDbHelper.delete(sdb);
-                            FtsDbHelper.optimize(sdb);
+                            try {
+                                SQLiteDatabase sdb = FtsDbHelper.getInstance(context);
+                                FtsDbHelper.delete(sdb);
+                                FtsDbHelper.optimize(sdb);
+                            } catch (SQLiteDatabaseCorruptException ex) {
+                                Log.e(ex);
+                                FtsDbHelper.delete(context);
+                            }
 
                             DB db = DB.getInstance(context);
                             db.message().resetFts();
@@ -223,14 +235,6 @@ public class FragmentOptionsMisc extends FragmentBase implements SharedPreferenc
             }
         });
 
-        swOptimize.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton compoundButton, boolean checked) {
-                prefs.edit().putBoolean("auto_optimize", checked).apply();
-                ServiceSynchronize.reload(getContext(), null, false, "optimize");
-            }
-        });
-
         swUpdates.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean checked) {
@@ -257,6 +261,14 @@ public class FragmentOptionsMisc extends FragmentBase implements SharedPreferenc
             }
         });
 
+        swQueries.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean checked) {
+                prefs.edit().putInt("query_threads", checked ? 2 : 4).commit(); // apply won't work here
+                restart();
+            }
+        });
+
         swCrashReports.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean checked) {
@@ -274,6 +286,14 @@ public class FragmentOptionsMisc extends FragmentBase implements SharedPreferenc
                 prefs.edit().putBoolean("debug", checked).apply();
                 Log.setDebug(checked);
                 grpDebug.setVisibility(checked || BuildConfig.DEBUG ? View.VISIBLE : View.GONE);
+            }
+        });
+
+        swAuthSasl.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean checked) {
+                prefs.edit().putBoolean("auth_sasl", checked).apply();
+                ServiceSynchronize.reload(getContext(), -1L, false, "auth_sasl=" + checked);
             }
         });
 
@@ -295,6 +315,20 @@ public class FragmentOptionsMisc extends FragmentBase implements SharedPreferenc
             @Override
             public void onClick(View view) {
                 onCleanup();
+            }
+        });
+
+        final Intent app = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+        app.setData(Uri.parse("package:" + getContext().getPackageName()));
+        btnApp.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                try {
+                    getContext().startActivity(app);
+                } catch (Throwable ex) {
+                    Log.w(ex);
+                    ToastEx.makeText(getContext(), getString(R.string.title_no_viewer, app), Toast.LENGTH_LONG).show();
+                }
             }
         });
 
@@ -508,15 +542,16 @@ public class FragmentOptionsMisc extends FragmentBase implements SharedPreferenc
         swFts.setChecked(prefs.getBoolean("fts", false));
         swEnglish.setChecked(prefs.getBoolean("english", false));
         swWatchdog.setChecked(prefs.getBoolean("watchdog", true));
-        swOptimize.setChecked(prefs.getBoolean("auto_optimize", false));
         swUpdates.setChecked(prefs.getBoolean("updates", true));
         swUpdates.setVisibility(
                 Helper.isPlayStoreInstall() || !Helper.hasValidFingerprint(getContext())
                         ? View.GONE : View.VISIBLE);
         swExperiments.setChecked(prefs.getBoolean("experiments", false));
+        swQueries.setChecked(prefs.getInt("query_threads", 4) < 4);
         swCrashReports.setChecked(prefs.getBoolean("crash_reports", false));
         tvUuid.setText(prefs.getString("uuid", null));
         swDebug.setChecked(prefs.getBoolean("debug", false));
+        swAuthSasl.setChecked(prefs.getBoolean("auth_sasl", true));
         swCleanupAttachments.setChecked(prefs.getBoolean("cleanup_attachments", false));
 
         tvProcessors.setText(getString(R.string.title_advanced_processors, Runtime.getRuntime().availableProcessors()));

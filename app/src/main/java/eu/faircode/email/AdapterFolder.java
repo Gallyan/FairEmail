@@ -22,6 +22,7 @@ package eu.faircode.email;
 import android.app.Dialog;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -48,6 +49,7 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -312,7 +314,7 @@ public class AdapterFolder extends RecyclerView.Adapter<AdapterFolder.ViewHolder
                 if (account < 0 && !primary)
                     tvType.setText(folder.accountName);
                 else
-                    tvType.setText(Helper.localizeFolderType(context, folder.type));
+                    tvType.setText(EntityFolder.localizeType(context, folder.type));
 
                 tvTotal.setText(folder.total == null ? "" : NF.format(folder.total));
 
@@ -517,6 +519,9 @@ public class AdapterFolder extends RecyclerView.Adapter<AdapterFolder.ViewHolder
                     }
                 }
             }
+
+            if (EntityFolder.INBOX.equals(folder.type) && folder.accountProtocol == EntityAccount.TYPE_POP)
+                popupMenu.getMenu().add(Menu.NONE, R.string.title_edit_rules, 11, R.string.title_edit_rules);
 
             if (folder.account != null && folder.accountProtocol == EntityAccount.TYPE_IMAP)
                 popupMenu.getMenu().add(Menu.NONE, R.string.title_create_sub_folder, 16, R.string.title_create_sub_folder)
@@ -723,7 +728,8 @@ public class AdapterFolder extends RecyclerView.Adapter<AdapterFolder.ViewHolder
                     lbm.sendBroadcast(
                             new Intent(ActivityView.ACTION_EDIT_RULES)
                                     .putExtra("account", folder.account)
-                                    .putExtra("folder", folder.id));
+                                    .putExtra("folder", folder.id)
+                                    .putExtra("protocol", folder.accountProtocol));
                 }
 
                 private void onActionEditProperties() {
@@ -749,7 +755,12 @@ public class AdapterFolder extends RecyclerView.Adapter<AdapterFolder.ViewHolder
                     Intent intent = new Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
                             .putExtra(Settings.EXTRA_APP_PACKAGE, context.getPackageName())
                             .putExtra(Settings.EXTRA_CHANNEL_ID, EntityFolder.getNotificationChannelId(folder.id));
-                    context.startActivity(intent);
+                    try {
+                        context.startActivity(intent);
+                    } catch (ActivityNotFoundException ex) {
+                        Log.w(ex);
+                        ToastEx.makeText(context, context.getString(R.string.title_no_viewer, intent), Toast.LENGTH_LONG).show();
+                    }
                 }
 
                 @RequiresApi(api = Build.VERSION_CODES.O)
@@ -996,17 +1007,24 @@ public class AdapterFolder extends RecyclerView.Adapter<AdapterFolder.ViewHolder
         if (parents.size() > 0)
             Collections.sort(parents, parents.get(0).getComparator(context));
 
-        for (TupleFolderEx parent : parents)
-            if ((show_hidden || !parent.hide) &&
-                    (!subscribed_only ||
-                            parent.accountProtocol != EntityAccount.TYPE_IMAP ||
-                            (parent.subscribed != null && parent.subscribed))) {
+        for (TupleFolderEx parent : parents) {
+            if (parent.hide && !show_hidden)
+                continue;
+
+            List<TupleFolderEx> childs = null;
+            if (parent.child_refs != null)
+                childs = getHierarchical(parent.child_refs, indentation + 1);
+
+            if (!subscribed_only ||
+                    parent.accountProtocol != EntityAccount.TYPE_IMAP ||
+                    (parent.subscribed != null && parent.subscribed) ||
+                    (childs != null && childs.size() > 0)) {
                 parent.indentation = indentation;
                 result.add(parent);
-
-                if (!parent.collapsed && parent.child_refs != null)
-                    result.addAll(getHierarchical(parent.child_refs, indentation + 1));
+                if (!parent.collapsed && childs != null)
+                    result.addAll(childs);
             }
+        }
 
         return result;
     }

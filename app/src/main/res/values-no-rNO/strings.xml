@@ -6,7 +6,6 @@
     <string name="app_limitations">For eksempel vil meldinger alltid bli formatert for å fjerne usikre elementer, og for å forbedre lesbarheten og åpning av linker må bekreftes for sikkerhet.</string>
     <string name="app_crash">FairEmail støttes ikke på denne enheten fordi feil i Android forårsaker krasjer</string>
     <string name="app_exit">Gå \'tilbake\' igjen for å avslutte</string>
-    <string name="channel_service">Service</string>
     <string name="channel_send">Send</string>
     <string name="channel_notification">Varsler</string>
     <string name="channel_update">Oppdateringer</string>
@@ -94,9 +93,7 @@
     <string name="menu_privacy">Personvern</string>
     <string name="menu_about">Om</string>
     <string name="menu_pro">Pro-funksjoner</string>
-    <string name="menu_invite">Inviter</string>
     <string name="menu_rate">Anmeld denne appen</string>
-    <string name="menu_other">Andre apper</string>
     <string name="title_welcome">Velkommen</string>
     <string name="title_eula">Lisensavtale for sluttbruker</string>
     <string name="title_agree">Enig</string>
@@ -209,9 +206,7 @@
     <string name="title_advanced_section_encryption">Kryptering</string>
     <string name="title_advanced_section_notifications">Varslinger</string>
     <string name="title_advanced_section_misc">Diverse</string>
-    <string name="title_advanced_receive">Motta meldinger</string>
     <string name="title_advanced_when">Når</string>
-    <string name="title_advanced_always">Synkroniser alltid disse kontoene</string>
     <string name="title_advanced_schedule">Tidsplan</string>
     <string name="title_advanced_advanced">Avansert</string>
     <string name="title_advanced_unseen">Alle uleste meldinger</string>
@@ -220,6 +215,8 @@
     <string name="title_advanced_kept_removed">Sjekk om gamle meldinger ble fjernet fra serveren</string>
     <string name="title_advanced_sync_folders">Synkroniser mappeliste</string>
     <string name="title_advanced_subscriptions">Administrere mappeabonnementer</string>
+    <string name="title_advanced_check_mx">Sjekk avsenderens e-postadresser når meldinger synkroniseres</string>
+    <string name="title_advanced_check_reply">Sjekk avsenderens e-postadresser når meldinger synkroniseres</string>
     <string name="title_advanced_keyboard">Vis tastatur som standard</string>
     <string name="title_advanced_suggest_local">Foreslå lokalt lagrede kontakter</string>
     <string name="title_advanced_suggest_sent">Foreslå adresser som er funnet i sendte meldinger</string>
@@ -228,7 +225,6 @@
     <string name="title_advanced_extended_reply">Bruk utvidet svar/videresendt overskrift</string>
     <string name="title_advanced_quote_reply">Sitat svarte tekst</string>
     <string name="title_advanced_signature_location">Signaturposisjon</string>
-    <string name="title_advanced_signature_end">Legg til signatur etter sitert/videresendt melding</string>
     <string name="title_advanced_plain_only">Send bare vanlig tekst som standard</string>
     <string name="title_advanced_flow">\'format strømmet\' for ren tekst</string>
     <string name="title_advanced_receipt">Når du ber om kvittering</string>
@@ -243,7 +239,6 @@
     <string name="title_advanced_rlah">Roam som hjemme</string>
     <string name="title_advanced_timeout">Tilkoblingsavbrudd (sekunder)</string>
     <string name="title_advanced_ssl_harden">Styrke SSL-tilkoblinger</string>
-    <string name="title_advanced_socks">Bruk SOCKS-proxy</string>
     <string name="title_advanced_manage_connectivity">Administrer tilkobling</string>
     <string name="title_advanced_caption_general">Generelt</string>
     <string name="title_advanced_caption_list">Liste</string>
@@ -282,14 +277,9 @@
     <string name="title_advanced_preview">Vis forhåndsvisning av melding</string>
     <string name="title_advanced_preview_italic">Vis forhåndsvisning av melding i kursiv</string>
     <string name="title_advanced_preview_lines">Antall forhåndsvisningslinjer</string>
-    <string name="title_advanced_archive_trash">Vis knapper for å arkivere eller legge melding i søppelboks</string>
-    <string name="title_advanced_move">Vis knapp for å flytte en melding</string>
     <string name="title_advanced_addresses">Vis adresseinformasjon som standard</string>
     <string name="title_advanced_attachments_alt">Vis vedlegg etter meldingsteksten</string>
     <string name="title_advanced_contrast">Bruk høy kontrast for meldingstekst</string>
-    <string name="title_advanced_monospaced">Bruk monospaced skrift for meldingstekst</string>
-    <string name="title_advanced_text_color">Vis tekstfarger</string>
-    <string name="title_advanced_text_size">Vis små og store tekster</string>
     <string name="title_advanced_collapse_quotes">Kollapse sitert tekst</string>
     <string name="title_advanced_images_inline">Vis automatisk innebygde bilder</string>
     <string name="title_advanced_seekbar">Vis relativ samtaleposisjon med en prikk</string>
@@ -365,9 +355,7 @@
     <string name="title_advanced_conversation_actions_replies">Foreslå svartekster</string>
     <string name="title_advanced_fts">Bygg søkeindeks</string>
     <string name="title_advanced_fts_indexed">%1$d / %2$d meldinger indeksert (%3$s)</string>
-    <string name="title_advanced_english">Tving bruk av engelsk</string>
     <string name="title_advanced_watchdog">Kontroller regelmessig om FairEmail fortsatt er aktiv</string>
-    <string name="title_advanced_optimize">Optimaliser innstillinger automatisk</string>
     <string name="title_advanced_updates">Se etter oppdateringer</string>
     <string name="title_advanced_experiments">Prøv eksperimentelle funksjoner</string>
     <string name="title_advanced_crash_reports">Send feilrapporter</string>
@@ -375,28 +363,22 @@
     <string name="title_advanced_cleanup">Rydd opp</string>
     <string name="title_advanced_last_cleanup">Siste opprydding: %1$s</string>
     <string name="title_advanced_more">Flere valg</string>
-    <string name="title_advanced_enabled_hint">Globalt deaktivere eller aktivere mottak av meldinger</string>
-    <string name="title_advanced_manual_hint">Hvis synkronisering er deaktivert, er det fortsatt mulig å synkronisere manuelt ved å trekke ned meldingslisten.</string>
-    <string name="title_advanced_poll_hint">Synkronisering med jevne mellomrom vil sammenligne lokale og eksterne meldinger hver gang, noe som er en kostbar operasjon som muligens resulterer i ekstra batteribruk, spesielt når det er mange meldinger å synkronisere. Alltid synkronisering vil unngå dette ved kontinuerlig overvåking for endringer.</string>
     <string name="title_advanced_schedule_hint">Trykk på en tid for å angi en tid</string>
-    <string name="title_advanced_check_mx">Sjekk avsenderens e-postadresser når meldinger synkroniseres</string>
-    <string name="title_advanced_check_reply">Sjekk avsenderens e-postadresser når meldinger synkroniseres</string>
     <string name="title_advanced_unseen_hint">Noen leverandører støtter ikke dette ordentlig, noe som kan føre til synkronisering av ingen eller alle meldinger</string>
     <string name="title_advanced_deleted_unseen">Når den er deaktivert, lagres uleste meldinger på enheten for alltid</string>
     <string name="title_advanced_sync_kept_hint">Dette vil overføre ekstra data og bruke ekstra batteristrøm, spesielt hvis det er lagret mange meldinger på enheten</string>
     <string name="title_advanced_sync_folders_hint">Deaktivering av dette vil redusere data og batteribruk noe, men deaktiverer også oppdateringen av listen over mapper</string>
+    <string name="title_advanced_lookup_mx_hint">Dette vil sjekke om DNS MX-poster eksisterer</string>
     <string name="title_advanced_sync_delay_hint">Dette vil redusere synkroniseringen av meldinger</string>
+    <string name="title_advanced_check_reply_hint">Dette vil sjekke om domenenavnet til avsenderen og svaradressene er det samme</string>
     <string name="title_advanced_suggest_local_hint">I tillegg til kontakter levert av Android. Vil kontaktdata blir lagret for nylig sendte eller mottatte meldinger når de er aktivert.</string>
     <string name="title_advanced_usenet_hint">Sett inn \'-- \' mellom teksten og signaturen</string>
     <string name="title_advanced_send_reminders_hint">Vis en advarsel når meldingsteksten eller emnet er tomt eller når et vedlegg mangler</string>
-    <string name="title_advanced_lookup_mx_hint">Dette vil sjekke om DNS MX-poster eksisterer</string>
-    <string name="title_advanced_check_reply_hint">Dette vil sjekke om domenenavnet til avsenderen og svaradressene er det samme</string>
     <string name="title_advanced_metered_hint">Målte tilkoblinger er vanligvis mobile tilkoblinger eller betalte Wi-Fi-hotspots</string>
     <string name="title_advanced_metered_warning">Deaktivering av dette alternativet deaktiverer mottak og sending av meldinger på mobile internettforbindelser</string>
     <string name="title_advanced_rlah_hint">Forutsatt ingen roaming i EU</string>
     <string name="title_advanced_timeout_hint">Tidsavbrudd for lese/skriving blir satt til den doble av tilkoblings avbruddstiden. Høyere verdier vil føre til mer batteribruk.</string>
     <string name="title_advanced_ssl_harden_hint">Aktivering av dette vil deaktivere svake SSL-protokoller og chiffer, noe som kan føre til tilkoblingsproblemer</string>
-    <string name="title_advanced_socks_hint">Å bruke en ekstern proxy-server er usikker fordi proxy-tilkoblinger ikke er kryptert</string>
     <string name="title_advanced_roaming_hint">Meldingsoverskrifter vil alltid bli hentet når du roamer. Du kan bruke enhetens roaming-innstilling for å deaktivere Internett mens du roamer.</string>
     <string name="title_advanced_browse_hint">Hent flere meldinger når du ruller ned</string>
     <string name="title_advanced_layout_hint">Å bytte til en mer kompakt layout og endre meldingens tekststørrelse kan gjøres i den øverste handlingslinje menyen i meldingsvisningen</string>
@@ -621,7 +603,6 @@
     <string name="title_reply_list">Svar på listen</string>
     <string name="title_reply_receipt">Send lesekvittering</string>
     <string name="title_reply_template">Svar med mal</string>
-    <string name="title_moving">Flytter til %1$s</string>
     <string name="title_open_with">Åpne med</string>
     <string name="title_authentication_failed">%1$s godkjenning mislyktes</string>
     <string name="title_receipt_subject">Lesebekreftelse: %1$s</string>
@@ -698,7 +679,6 @@ Dette vil bidra til å opprettholde en balanse mellom ugunstige og gunstige anme
     <string name="title_style_italic">Kursiv</string>
     <string name="title_style_underline">Understrek</string>
     <string name="title_style_size">Størrelse</string>
-    <string name="title_style_color">Farge</string>
     <string name="title_style_clear">Fjern formatering</string>
     <string name="title_style_link">Sett inn lenke</string>
     <string name="title_add_attachment">Legg ved fil</string>
@@ -914,8 +894,6 @@ Dette vil bidra til å opprettholde en balanse mellom ugunstige og gunstige anme
     <string name="title_legend_bold">Gjøre teksten fet</string>
     <string name="title_legend_italic">Gjøre teksten kursiv</string>
     <string name="title_legend_underline">Understreke tekst</string>
-    <string name="title_legend_text_size">Angi tekststørrelse</string>
-    <string name="title_legend_text_color">Angi tekstfarge</string>
     <string name="title_legend_metered">Tilkoblingen er målt</string>
     <string name="title_legend_unmetered">Tilkoblingen er ikke målt</string>
     <string name="title_legend_roaming">Roaming</string>
@@ -925,7 +903,6 @@ Dette vil bidra til å opprettholde en balanse mellom ugunstige og gunstige anme
     <string name="title_legend_show_junk">Behandle som spam</string>
     <string name="title_legend_show_unsubscribe">Avslutt abonnement fra listen</string>
     <string name="title_legend_show_images">Vise bilder</string>
-    <string name="title_legend_show_full">Vis fullskjerm</string>
     <string name="title_legend_edit">Rediger</string>
     <string name="title_legend_default_color">Standard farge</string>
     <string name="title_legend_close_hint">Lukk tips</string>
@@ -1001,7 +978,6 @@ Dette vil bidra til å opprettholde en balanse mellom ugunstige og gunstige anme
     <string name="title_dismiss">Avvis</string>
     <string name="title_snooze_now">Utsett</string>
     <string name="title_loading">Laster &#8230;</string>
-    <string name="title_set">Bruk</string>
     <string name="title_fetching_again">Henter melding igjen fra serveren</string>
     <string name="title_conversation_actions">Handlinger</string>
     <string name="title_conversation_action_reply">Svar med: \'%1$s\'</string>
@@ -1010,15 +986,10 @@ Dette vil bidra til å opprettholde en balanse mellom ugunstige og gunstige anme
     <string name="title_icalendar_decline">Avslå</string>
     <string name="title_icalendar_maybe">Kanskje</string>
     <string name="title_icalendar_calendar">Kalender</string>
-    <string name="title_try">Prøv FairEmail, en e-postapp for Android med åpen kildekode som respekterer din integritet</string>
     <string name="title_pro_feature">Dette er en Pro-funksjon</string>
     <string name="title_pro_list">Liste over Pro funksjoner</string>
     <string name="title_pro_purchase">Kjøp</string>
     <string name="title_pro_once">Bare en gang</string>
-    <string name="title_pro_info">Å utvikle FairEmail tok bokstavelig talt tusenvis av timer, og til tross for at de fleste funksjoner er gratis å bruke.
-         For å gjøre FairEmail bærekraftig på lang sikt er det noe brukervennlighet og avanserte funksjoner som ikke er gratis å bruke.
-         FairEmail viser en liten melding for å minne deg på dette, og som vil bli fjernet hvis du kjøper pro funksjonene.
-    </string>
     <string name="title_pro_hint">Ved å kjøpe pro-funksjoner kan du bruke alle aktuelle og fremtidige pro-funksjoner, og vil holde denne appen vedlikeholdt og støttet</string>
     <string name="title_pro_price">Vennligst se <a href="https://github.com/M66B/open-source-email/blob/master/FAQ.md#user-content-faq19">denne FAQ</a> om pris på Pro-funksjonene</string>
     <string name="title_pro_pending">Ventende kjøp</string>
@@ -1136,6 +1107,7 @@ Dette vil bidra til å opprettholde en balanse mellom ugunstige og gunstige anme
         <item>I begynnelsen</item>
         <item>I midten</item>
         <item>På slutten</item>
+        <item>Show untruncated</item>
     </string-array>
     <string-array name="priorityNames">
         <item>Lav</item>

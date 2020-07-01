@@ -52,6 +52,8 @@ public class FragmentOptionsNotifications extends FragmentBase implements Shared
     private Button btnManage;
     private Button btnManageDefault;
     private Button btnManageService;
+    private SwitchCompat swBackground;
+
     private CheckBox cbNotifyActionTrash;
     private CheckBox cbNotifyActionJunk;
     private CheckBox cbNotifyActionBlockSender;
@@ -68,6 +70,8 @@ public class FragmentOptionsNotifications extends FragmentBase implements Shared
 
     private SwitchCompat swBadge;
     private SwitchCompat swUnseenIgnored;
+    private SwitchCompat swNotifyKnown;
+    private TextView tvNotifyKnownPro;
     private SwitchCompat swNotifySummary;
     private SwitchCompat swNotifyRemove;
     private SwitchCompat swNotifyClear;
@@ -88,7 +92,8 @@ public class FragmentOptionsNotifications extends FragmentBase implements Shared
             "notify_flag", "notify_seen", "notify_snooze",
             "light", "sound",
             "badge", "unseen_ignored",
-            "notify_summary", "notify_remove", "notify_clear", "notify_preview", "notify_preview_all", "wearable_preview",
+            "notify_known", "notify_summary", "notify_remove", "notify_clear",
+            "notify_preview", "notify_preview_all", "wearable_preview",
             "biometrics_notify",
             "alert_once"
     };
@@ -106,6 +111,8 @@ public class FragmentOptionsNotifications extends FragmentBase implements Shared
         btnManage = view.findViewById(R.id.btnManage);
         btnManageDefault = view.findViewById(R.id.btnManageDefault);
         btnManageService = view.findViewById(R.id.btnManageService);
+        swBackground = view.findViewById(R.id.swBackground);
+
         cbNotifyActionTrash = view.findViewById(R.id.cbNotifyActionTrash);
         cbNotifyActionJunk = view.findViewById(R.id.cbNotifyActionJunk);
         cbNotifyActionBlockSender = view.findViewById(R.id.cbNotifyActionBlockSender);
@@ -122,6 +129,8 @@ public class FragmentOptionsNotifications extends FragmentBase implements Shared
 
         swBadge = view.findViewById(R.id.swBadge);
         swUnseenIgnored = view.findViewById(R.id.swUnseenIgnored);
+        swNotifyKnown = view.findViewById(R.id.swNotifyKnown);
+        tvNotifyKnownPro = view.findViewById(R.id.tvNotifyKnownPro);
         swNotifySummary = view.findViewById(R.id.swNotifySummary);
         swNotifyRemove = view.findViewById(R.id.swNotifyRemove);
         swNotifyClear = view.findViewById(R.id.swNotifyClear);
@@ -148,7 +157,7 @@ public class FragmentOptionsNotifications extends FragmentBase implements Shared
                 .putExtra("app_uid", getContext().getApplicationInfo().uid)
                 .putExtra(Settings.EXTRA_APP_PACKAGE, getContext().getPackageName());
 
-        btnManage.setEnabled(manage.resolveActivity(pm) != null);
+        btnManage.setEnabled(manage.resolveActivity(pm) != null); // system whitelisted
         btnManage.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -160,7 +169,7 @@ public class FragmentOptionsNotifications extends FragmentBase implements Shared
                 .putExtra(Settings.EXTRA_APP_PACKAGE, getContext().getPackageName())
                 .putExtra(Settings.EXTRA_CHANNEL_ID, "notification");
 
-        btnManageDefault.setEnabled(channelNotification.resolveActivity(pm) != null);
+        btnManageDefault.setEnabled(channelNotification.resolveActivity(pm) != null); // system whitelisted
         btnManageDefault.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -172,11 +181,19 @@ public class FragmentOptionsNotifications extends FragmentBase implements Shared
                 .putExtra(Settings.EXTRA_APP_PACKAGE, getContext().getPackageName())
                 .putExtra(Settings.EXTRA_CHANNEL_ID, "service");
 
-        btnManageService.setEnabled(channelService.resolveActivity(pm) != null);
+        btnManageService.setEnabled(channelService.resolveActivity(pm) != null); // system whitelisted
         btnManageService.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 startActivity(channelService);
+            }
+        });
+
+        swBackground.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean checked) {
+                prefs.edit().putBoolean("background_service", checked).apply();
+                ServiceSynchronize.eval(getContext(), "background=" + checked);
             }
         });
 
@@ -252,6 +269,7 @@ public class FragmentOptionsNotifications extends FragmentBase implements Shared
         });
 
         Helper.linkPro(tvNotifyActionsPro);
+        Helper.linkPro(tvNotifyKnownPro);
 
         swLight.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
@@ -285,6 +303,14 @@ public class FragmentOptionsNotifications extends FragmentBase implements Shared
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean checked) {
                 prefs.edit().putBoolean("unseen_ignored", checked).apply();
+            }
+        });
+
+        swNotifyKnown.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean checked) {
+                prefs.edit().putBoolean("notify_known", checked).apply();
+                enableOptions();
             }
         });
 
@@ -406,6 +432,8 @@ public class FragmentOptionsNotifications extends FragmentBase implements Shared
         boolean pro = ActivityBilling.isPro(getContext());
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getContext());
 
+        swBackground.setChecked(prefs.getBoolean("background_service", false));
+
         cbNotifyActionTrash.setChecked(prefs.getBoolean("notify_trash", true) || !pro);
         cbNotifyActionJunk.setChecked(prefs.getBoolean("notify_junk", false) && pro);
         cbNotifyActionBlockSender.setChecked(prefs.getBoolean("notify_block_sender", false) && pro);
@@ -420,6 +448,7 @@ public class FragmentOptionsNotifications extends FragmentBase implements Shared
 
         swBadge.setChecked(prefs.getBoolean("badge", true));
         swUnseenIgnored.setChecked(prefs.getBoolean("unseen_ignored", false));
+        swNotifyKnown.setChecked(prefs.getBoolean("notify_known", false));
         swNotifySummary.setChecked(prefs.getBoolean("notify_summary", false));
         swNotifyRemove.setChecked(prefs.getBoolean("notify_remove", true));
         swNotifyClear.setChecked(prefs.getBoolean("notify_clear", false));

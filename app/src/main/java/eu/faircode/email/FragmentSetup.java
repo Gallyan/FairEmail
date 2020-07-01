@@ -167,10 +167,11 @@ public class FragmentSetup extends FragmentBase {
 
                 int order = 1;
                 popupMenu.getMenu().add(Menu.NONE, R.string.title_setup_gmail, order++, R.string.title_setup_gmail);
+                popupMenu.getMenu().add(Menu.NONE, R.string.title_setup_outlook, order++, R.string.title_setup_outlook);
 
                 if (Helper.hasValidFingerprint(getContext()) || BuildConfig.DEBUG)
                     for (EmailProvider provider : EmailProvider.loadProfiles(getContext()))
-                        if (provider.oauth != null && (provider.oauth.enabled || BuildConfig.DEBUG))
+                        if (provider.oauth != null && provider.oauth.enabled)
                             popupMenu.getMenu()
                                     .add(Menu.NONE, -1, order++, getString(R.string.title_setup_oauth, provider.name))
                                     .setIntent(new Intent(ActivitySetup.ACTION_QUICK_OAUTH)
@@ -195,6 +196,7 @@ public class FragmentSetup extends FragmentBase {
                             case R.string.title_setup_activesync:
                                 Helper.viewFAQ(getContext(), 133);
                                 return true;
+                            case R.string.title_setup_outlook:
                             case R.string.title_setup_other:
                                 lbm.sendBroadcast(new Intent(ActivitySetup.ACTION_QUICK_SETUP));
                                 return true;
@@ -272,7 +274,7 @@ public class FragmentSetup extends FragmentBase {
                     startActivity(settings);
                 }
             });
-            btnDataSaver.setEnabled(settings.resolveActivity(pm) != null);
+            btnDataSaver.setEnabled(settings.resolveActivity(pm) != null); // system whitelisted
         }
 
         btnInbox.setOnClickListener(new View.OnClickListener() {
@@ -354,8 +356,6 @@ public class FragmentSetup extends FragmentBase {
             public void onChanged(@Nullable List<EntityAccount> accounts) {
                 done = (accounts != null && accounts.size() > 0);
 
-                getActivity().invalidateOptionsMenu();
-
                 tvQuickRemark.setVisibility(done ? View.VISIBLE : View.GONE);
 
                 tvAccountDone.setText(done ? R.string.title_setup_done : R.string.title_setup_to_do);
@@ -408,7 +408,8 @@ public class FragmentSetup extends FragmentBase {
         Boolean ignoring = true;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             Intent intent = new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
-            if (intent.resolveActivity(getContext().getPackageManager()) != null) {
+            PackageManager pm = getContext().getPackageManager();
+            if (intent.resolveActivity(pm) != null) { // system whitelisted
                 ignoring = Helper.isIgnoringOptimizations(getContext());
                 if (ignoring == null)
                     ignoring = true;

@@ -143,6 +143,8 @@ public class EntityMessage implements Serializable {
     public Boolean plain_only = null;
     public Integer encrypt = null;
     public Integer ui_encrypt = null;
+    @NonNull
+    public Boolean verified = false;
     public String preview;
     @NonNull
     public Boolean signature = true;
@@ -159,6 +161,7 @@ public class EntityMessage implements Serializable {
     public Boolean flagged = false;
     public String flags; // system flags
     public String[] keywords; // user flags
+    public String[] labels; // Gmail
     @NonNull
     public Integer notifying = 0;
     @NonNull
@@ -220,7 +223,9 @@ public class EntityMessage implements Serializable {
         if (identities != null)
             for (Address address : new ArrayList<>(addresses))
                 for (TupleIdentityEx identity : identities)
-                    if (identity.account == account && identity.similarAddress(address))
+                    if (identity.account == account &&
+                            identity.self &&
+                            identity.similarAddress(address))
                         addresses.remove(address);
 
         return addresses.toArray(new Address[0]);
@@ -239,6 +244,30 @@ public class EntityMessage implements Serializable {
             return null;
         InternetAddress sender = (InternetAddress) from[0];
         return "notification." + sender.getAddress().toLowerCase(Locale.ROOT);
+    }
+
+    boolean setLabel(String label, boolean set) {
+        List<String> list = new ArrayList<>();
+        if (labels != null)
+            list.addAll(Arrays.asList(labels));
+
+        boolean changed = false;
+        if (set) {
+            if (!list.contains(label)) {
+                changed = true;
+                list.add(label);
+            }
+        } else {
+            if (list.contains(label)) {
+                changed = true;
+                list.remove(label);
+            }
+        }
+
+        if (changed)
+            labels = list.toArray(new String[0]);
+
+        return changed;
     }
 
     static File getFile(Context context, Long id) {
@@ -352,6 +381,7 @@ public class EntityMessage implements Serializable {
                     Objects.equals(this.plain_only, other.plain_only) &&
                     Objects.equals(this.encrypt, other.encrypt) &&
                     Objects.equals(this.ui_encrypt, other.ui_encrypt) &&
+                    this.verified == other.verified &&
                     Objects.equals(this.preview, other.preview) &&
                     this.signature.equals(other.signature) &&
                     Objects.equals(this.sent, other.sent) &&

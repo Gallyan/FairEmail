@@ -40,6 +40,7 @@ import android.service.notification.StatusBarNotification;
 import android.text.TextUtils;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.core.app.AlarmManagerCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
@@ -94,7 +95,6 @@ public class ServiceSynchronize extends ServiceBase implements SharedPreferences
     private long lastLost = 0;
     private int lastAccounts = 0;
     private int lastOperations = 0;
-    private Handler handler;
 
     private Map<Long, Core.State> coreStates = new Hashtable<>();
     private MutableLiveData<ConnectionHelper.NetworkState> liveNetworkState = new MutableLiveData<>();
@@ -114,7 +114,8 @@ public class ServiceSynchronize extends ServiceBase implements SharedPreferences
     private static final int ACCOUNT_ERROR_AFTER = 60; // minutes
     private static final int ACCOUNT_ERROR_AFTER_POLL = 3; // times
     private static final int BACKOFF_ERROR_AFTER = 16; // seconds
-    private static final long WIDGET_UPDATE_DELAY = 2500L; // milliseconds
+
+    private static final String ACTION_NEW_MESSAGE_COUNT = BuildConfig.APPLICATION_ID + ".NEW_MESSAGE_COUNT";
 
     private static final List<String> PREF_EVAL = Collections.unmodifiableList(Arrays.asList(
             "enabled", "poll_interval" // restart account(s)
@@ -123,7 +124,6 @@ public class ServiceSynchronize extends ServiceBase implements SharedPreferences
     private static final List<String> PREF_RELOAD = Collections.unmodifiableList(Arrays.asList(
             "metered", "roaming", "rlah", // force reconnect
             "ssl_harden", // force reconnect
-            "socks_enabled", "socks_proxy", // force reconnect
             "badge", "unseen_ignored", // force update badge/widget
             "debug" // force reconnect
     ));
@@ -136,9 +136,13 @@ public class ServiceSynchronize extends ServiceBase implements SharedPreferences
     public void onCreate() {
         EntityLog.log(this, "Service create version=" + BuildConfig.VERSION_NAME);
         super.onCreate();
-        startForeground(Helper.NOTIFICATION_SYNCHRONIZE, getNotificationService(null, null).build());
 
-        handler = new Handler();
+        final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        boolean background_service = prefs.getBoolean("background_service", false);
+        if (background_service)
+            stopForeground(true);
+        else
+            startForeground(Helper.NOTIFICATION_SYNCHRONIZE, getNotificationService(null, null).build());
 
         // Listen for network changes
         ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -152,6 +156,9 @@ public class ServiceSynchronize extends ServiceBase implements SharedPreferences
         iif.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
         iif.addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED);
         registerReceiver(connectionChangedReceiver, iif);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
+            registerReceiver(idleModeChangedReceiver, new IntentFilter(PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED));
 
         DB db = DB.getInstance(this);
 
@@ -278,10 +285,13 @@ public class ServiceSynchronize extends ServiceBase implements SharedPreferences
                             WorkerFts.cancel(ServiceSynchronize.this);
                         }
 
-                        try {
-                            NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-                            nm.notify(Helper.NOTIFICATION_SYNCHRONIZE, getNotificationService(lastAccounts, lastOperations).build());
-                        } catch (Throwable ex) {
+                        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(ServiceSynchronize.this);
+                        boolean background_service = prefs.getBoolean("background_service", false);
+                        if (!background_service)
+                            try {
+                                NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+                                nm.notify(Helper.NOTIFICATION_SYNCHRONIZE, getNotificationService(lastAccounts, lastOperations).build());
+                            } catch (Throwable ex) {
 /*
                             java.lang.NullPointerException: Attempt to invoke interface method 'java.util.Iterator java.lang.Iterable.iterator()' on a null object reference
                                     at android.app.ApplicationPackageManager.getUserIfProfile(ApplicationPackageManager.java:2167)
@@ -293,8 +303,8 @@ public class ServiceSynchronize extends ServiceBase implements SharedPreferences
                                     at androidx.core.app.NotificationCompatBuilder.build(SourceFile:247)
                                     at androidx.core.app.NotificationCompat$Builder.build(SourceFile:1677)
 */
-                            Log.w(ex);
-                        }
+                                Log.w(ex);
+                            }
                     }
 
                     if (!runService)
@@ -420,8 +430,6 @@ public class ServiceSynchronize extends ServiceBase implements SharedPreferences
             }
         });
 
-        final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-
         final TwoStateOwner cowner = new TwoStateOwner(this, "liveUnseenNotify");
 
         db.folder().liveSynchronizing().observe(this, new Observer<Integer>() {
@@ -517,8 +525,7 @@ public class ServiceSynchronize extends ServiceBase implements SharedPreferences
 
                 last = stats;
 
-                handler.removeCallbacks(refreshWidget);
-                handler.postDelayed(refreshWidget, WIDGET_UPDATE_DELAY);
+                Widget.update(ServiceSynchronize.this);
 
                 boolean badge = prefs.getBoolean("badge", true);
                 boolean unseen_ignored = prefs.getBoolean("unseen_ignored", false);
@@ -532,6 +539,16 @@ public class ServiceSynchronize extends ServiceBase implements SharedPreferences
 
                 if (lastCount == null || !lastCount.equals(count)) {
                     lastCount = count;
+                    // Broadcast new message count
+                    try {
+                        Intent intent = new Intent(ACTION_NEW_MESSAGE_COUNT);
+                        intent.putExtra("count", count);
+                        sendBroadcast(intent);
+                    } catch (Throwable ex) {
+                        Log.e(ex);
+                    }
+
+                    // Update badge
                     try {
                         if (count == 0 || !badge)
                             ShortcutBadger.removeCount(ServiceSynchronize.this);
@@ -562,10 +579,8 @@ public class ServiceSynchronize extends ServiceBase implements SharedPreferences
                             break;
                         }
 
-                if (changed) {
-                    handler.removeCallbacks(refreshWidgetUnified);
-                    handler.postDelayed(refreshWidgetUnified, WIDGET_UPDATE_DELAY);
-                }
+                if (changed)
+                    WidgetUnified.updateData(ServiceSynchronize.this);
 
                 last = current;
             }
@@ -573,20 +588,6 @@ public class ServiceSynchronize extends ServiceBase implements SharedPreferences
 
         prefs.registerOnSharedPreferenceChangeListener(this);
     }
-
-    private final Runnable refreshWidget = new Runnable() {
-        @Override
-        public void run() {
-            Widget.update(ServiceSynchronize.this);
-        }
-    };
-
-    private final Runnable refreshWidgetUnified = new Runnable() {
-        @Override
-        public void run() {
-            WidgetUnified.updateData(ServiceSynchronize.this);
-        }
-    };
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences prefs, String key) {
@@ -609,6 +610,9 @@ public class ServiceSynchronize extends ServiceBase implements SharedPreferences
 
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
         prefs.unregisterOnSharedPreferenceChangeListener(this);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
+            unregisterReceiver(idleModeChangedReceiver);
 
         unregisterReceiver(connectionChangedReceiver);
 
@@ -666,7 +670,13 @@ public class ServiceSynchronize extends ServiceBase implements SharedPreferences
         Log.logExtras(intent);
 
         super.onStartCommand(intent, flags, startId);
-        startForeground(Helper.NOTIFICATION_SYNCHRONIZE, getNotificationService(null, null).build());
+
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        boolean background_service = prefs.getBoolean("background_service", false);
+        if (background_service)
+            stopForeground(true);
+        else
+            startForeground(Helper.NOTIFICATION_SYNCHRONIZE, getNotificationService(null, null).build());
 
         if (action != null)
             try {
@@ -1317,7 +1327,7 @@ public class ServiceSynchronize extends ServiceBase implements SharedPreferences
                                                                         ServiceSynchronize.this,
                                                                         folder.name + " " + Log.formatThrowable(ex, false));
                                                                 db.folder().setFolderError(folder.id, Log.formatThrowable(ex));
-                                                                state.error(ex);
+                                                                //state.error(ex);
                                                             } finally {
                                                                 if (shouldClose) {
                                                                     if (ifolder != null && ifolder.isOpen()) {
@@ -1351,14 +1361,14 @@ public class ServiceSynchronize extends ServiceBase implements SharedPreferences
                     boolean first = true;
                     while (state.isRunning()) {
                         long idleTime = state.getIdleTime();
-                        boolean auto_optimize = prefs.getBoolean("auto_optimize", false);
-                        boolean optimize = (auto_optimize && !first &&
+                        boolean tune_keep_alive = prefs.getBoolean("tune_keep_alive", true);
+                        boolean tune = (tune_keep_alive && !first &&
                                 !account.keep_alive_ok && account.poll_interval > 9 &&
                                 Math.abs(idleTime - account.poll_interval * 60 * 1000L) < 60 * 1000L);
-                        if (auto_optimize && !first && !account.keep_alive_ok)
+                        if (tune_keep_alive && !first && !account.keep_alive_ok)
                             EntityLog.log(ServiceSynchronize.this, account.name +
-                                    " Optimize interval=" + account.poll_interval +
-                                    " idle=" + idleTime + "/" + optimize);
+                                    " Tune interval=" + account.poll_interval +
+                                    " idle=" + idleTime + "/" + tune);
                         try {
                             if (!state.isRecoverable())
                                 throw new StoreClosedException(iservice.getStore(), "Unrecoverable");
@@ -1389,7 +1399,7 @@ public class ServiceSynchronize extends ServiceBase implements SharedPreferences
                                             Log.i(folder.name + " poll count=" + folder.poll_count);
                                         }
                         } catch (Throwable ex) {
-                            if (optimize) {
+                            if (tune) {
                                 account.keep_alive_failed++;
                                 account.keep_alive_succeeded = 0;
                                 if (account.keep_alive_failed >= 3) {
@@ -1408,7 +1418,7 @@ public class ServiceSynchronize extends ServiceBase implements SharedPreferences
                             throw ex;
                         }
 
-                        if (optimize) {
+                        if (tune) {
                             account.keep_alive_failed = 0;
                             account.keep_alive_succeeded++;
                             db.account().setAccountKeepAliveValues(account.id,
@@ -1701,12 +1711,16 @@ public class ServiceSynchronize extends ServiceBase implements SharedPreferences
                         "Updated network=" + network +
                                 " capabilities " + capabilities +
                                 " suitable=" + lastSuitable);
-                try {
-                    NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-                    nm.notify(Helper.NOTIFICATION_SYNCHRONIZE, getNotificationService(lastAccounts, lastOperations).build());
-                } catch (Throwable ex) {
-                    Log.w(ex);
-                }
+
+                SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(ServiceSynchronize.this);
+                boolean background_service = prefs.getBoolean("background_service", false);
+                if (!background_service)
+                    try {
+                        NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+                        nm.notify(Helper.NOTIFICATION_SYNCHRONIZE, getNotificationService(lastAccounts, lastOperations).build());
+                    } catch (Throwable ex) {
+                        Log.w(ex);
+                    }
             }
         }
     };
@@ -1724,6 +1738,16 @@ public class ServiceSynchronize extends ServiceBase implements SharedPreferences
             }
 
             networkCallback.onCapabilitiesChanged(null, null);
+        }
+    };
+
+    private BroadcastReceiver idleModeChangedReceiver = new BroadcastReceiver() {
+        @Override
+        @RequiresApi(api = Build.VERSION_CODES.M)
+        public void onReceive(Context context, Intent intent) {
+            PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+            EntityLog.log(context, "Doze mode=" + pm.isDeviceIdleMode() +
+                    " ignoring=" + pm.isIgnoringBatteryOptimizations(context.getPackageName()));
         }
     };
 
@@ -1762,7 +1786,10 @@ public class ServiceSynchronize extends ServiceBase implements SharedPreferences
                 return;
             }
 
-            if (networkState == null || accountStates == null)
+            if (networkState == null)
+                networkState = ConnectionHelper.getNetworkState(ServiceSynchronize.this);
+
+            if (accountStates == null)
                 return;
 
             SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(ServiceSynchronize.this);
@@ -1962,14 +1989,14 @@ public class ServiceSynchronize extends ServiceBase implements SharedPreferences
     }
 
     static void eval(Context context, String reason) {
-        ContextCompat.startForegroundService(context,
+        start(context,
                 new Intent(context, ServiceSynchronize.class)
                         .setAction("eval")
                         .putExtra("reason", reason));
     }
 
     static void reload(Context context, Long account, boolean force, String reason) {
-        ContextCompat.startForegroundService(context,
+        start(context,
                 new Intent(context, ServiceSynchronize.class)
                         .setAction("reload")
                         .putExtra("account", account == null ? -1 : account)
@@ -1978,14 +2005,26 @@ public class ServiceSynchronize extends ServiceBase implements SharedPreferences
     }
 
     static void reschedule(Context context) {
-        ContextCompat.startForegroundService(context,
+        start(context,
                 new Intent(context, ServiceSynchronize.class)
                         .setAction("alarm"));
     }
 
     static void watchdog(Context context) {
-        ContextCompat.startForegroundService(context,
-                new Intent(context, ServiceSynchronize.class)
-                        .setAction("watchdog"));
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        boolean enabled = prefs.getBoolean("enabled", true);
+        if (enabled)
+            start(context,
+                    new Intent(context, ServiceSynchronize.class)
+                            .setAction("watchdog"));
+    }
+
+    private static void start(Context context, Intent intent) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        boolean background_service = prefs.getBoolean("background_service", false);
+        if (background_service)
+            context.startService(intent);
+        else
+            ContextCompat.startForegroundService(context, intent);
     }
 }
